@@ -1,0 +1,6 @@
+outs:
+- md5: 00000000000000000000000000000000
+  size: 0
+  path: defaultCreditCardClients.xls
+  remote: gdrive_remote
+  desc: Dataset Default of Credit Card Clients (sumber Google Drive). Jalankan `dvc pull`.

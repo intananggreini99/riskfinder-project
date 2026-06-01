@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Env & secret
+.env
+.env.local
+services/*/.env
+.dvc/gdrive-sa.json
+*.key
+
+# Artifact & data (di-track DVC, bukan Git)
+artifacts/
+*.pkl
+data/*.csv
+data/*.xls
+data/*.xlsx
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vercel/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

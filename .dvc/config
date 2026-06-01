@@ -1,0 +1,10 @@
+# Konfigurasi DVC — remote Google Drive sebagai penyimpanan data tidak terstruktur
+# (dataset .xls, set train/test .csv, dan artifact .pkl).
+[core]
+    remote = gdrive_remote
+    autostage = true
+
+['remote "gdrive_remote"']
+    url = gdrive://1qhTv9KOVAn08gl8OQcAbsRoJ9wPJ8I2d
+    gdrive_use_service_account = true
+    gdrive_service_account_json_file_path = /app/.dvc/gdrive-sa.json

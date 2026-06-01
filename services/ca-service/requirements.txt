@@ -1,0 +1,23 @@
+# ===== Web framework =====
+fastapi==0.115.4
+uvicorn[standard]==0.32.0
+python-multipart==0.0.12
+
+# ===== Autentikasi (JWT) =====
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# ===== Database (PostgreSQL) =====
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+
+# ===== Inference =====
+pandas==2.2.3
+numpy==1.26.4
+scikit-learn==1.5.2
+xgboost==2.1.2
+joblib==1.4.2
+
+# ===== Util =====
+pydantic==2.9.2
+pydantic-settings==2.6.1

@@ -1,0 +1,4 @@
+# File data aktual di-track DVC, bukan Git
+/defaultCreditCardClients.xls
+/*.csv
+*.pkl

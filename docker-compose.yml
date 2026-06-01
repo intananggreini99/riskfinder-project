@@ -1,0 +1,87 @@
+# =====================================================================
+#  RiskFinder · Credit Risk Analysis — Orkestrasi Backend
+#  Dua container terpisah (Data Scientist & Credit Analysis) berbagi
+#  Docker Volume artifact (.pkl) dan satu PostgreSQL (skema snowflake).
+# =====================================================================
+services:
+  # ---------------- PostgreSQL (data terstruktur, skema snowflake) ----------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: rf-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-riskfinder}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-riskfinder}
+      POSTGRES_DB: ${POSTGRES_DB:-riskfinder}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      # Skrip init dijalankan otomatis sekali saat volume pertama dibuat
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-riskfinder}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------- MLflow Tracking Server ----------------
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.17.2
+    container_name: rf-mlflow
+    restart: unless-stopped
+    command: >
+      mlflow server
+      --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+
+  # ---------------- Container 1 · Data Scientist Sistem ----------------
+  ds-service:
+    build: ./services/ds-service
+    image: ${DOCKERHUB_USER:-riskfinder}/rf-ds-service:latest
+    container_name: rf-ds-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-riskfinder}:${POSTGRES_PASSWORD:-riskfinder}@postgres:5432/${POSTGRES_DB:-riskfinder}
+      JWT_SECRET: ${JWT_SECRET:-ganti-dengan-secret-acak-panjang-di-produksi}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      ARTIFACT_DIR: /artifacts
+      DATA_DIR: /data
+    ports:
+      - "8081:8081"
+    volumes:
+      - artifacts:/artifacts        # Docker Volume bersama untuk .pkl
+      - dvc_data:/data              # dataset & set train/test (di-track DVC)
+      - ./.dvc:/app/.dvc:ro         # konfigurasi DVC remote (Google Drive)
+
+  # ---------------- Container 2 · Credit Analysis Sistem ----------------
+  ca-service:
+    build: ./services/ca-service
+    image: ${DOCKERHUB_USER:-riskfinder}/rf-ca-service:latest
+    container_name: rf-ca-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-riskfinder}:${POSTGRES_PASSWORD:-riskfinder}@postgres:5432/${POSTGRES_DB:-riskfinder}
+      JWT_SECRET: ${JWT_SECRET:-ganti-dengan-secret-acak-panjang-di-produksi}
+      ARTIFACT_DIR: /artifacts
+    ports:
+      - "8082:8082"
+    volumes:
+      - artifacts:/artifacts        # baca artifact aktif dari Data Scientist
+
+volumes:
+  pg_data:
+  mlflow_data:
+  artifacts:                        # << Docker Volume penyimpan .pkl (preprocessing & model)
+  dvc_data:

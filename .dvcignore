@@ -1,0 +1,3 @@
+# Pola file yang diabaikan DVC
+*.tmp
+__pycache__/
