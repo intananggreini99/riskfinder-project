@@ -10,12 +10,12 @@ class Settings(BaseSettings):
 
     # ---- JWT ----
     # WAJIB diganti di produksi (lihat .env). Dipakai bersama antar service agar token kompatibel.
-    JWT_SECRET: str = "ganti-dengan-secret-acak-panjang-di-produksi"
+    JWT_SECRET: str = ""
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8  # 8 jam
 
     # ---- PostgreSQL ----
-    DATABASE_URL: str = "postgresql+psycopg2://riskfinder:riskfinder@postgres:5432/riskfinder"
+    DATABASE_URL: str = ""
 
     # ---- Docker Volume (penyimpanan artifact .pkl) ----
     ARTIFACT_DIR: str = "/artifacts"          # mount Docker Volume bersama
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     DATASET_FILE: str = "defaultCreditCardClients.xls"
     # URL Google Drive sumber dataset (di-track DVC sebagai remote gdrive)
     GDRIVE_DATASET_URL: str = (
-        "https://docs.google.com/spreadsheets/d/1M5IpMEQ1KVq0WT_nt-iEJ0l6-7OEG84O/edit"
+        "https://drive.google.com/drive/folders/1qhTv9KOVAn08gl8OQcAbsRoJ9wPJ8I2d?usp=sharing"
     )
 
     # ---- MLflow ----
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     MLFLOW_EXPERIMENT: str = "credit-risk-build"
 
     # ---- CORS (origin frontend Vercel) ----
-    CORS_ORIGINS: str = "http://localhost:5173,https://*.vercel.app"
+    CORS_ORIGINS: str = "http://localhost:5173"
 
     class Config:
         env_file = ".env"

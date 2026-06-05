@@ -7,12 +7,12 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = "RiskFinder · Credit Analysis Sistem"
 
     # ---- JWT (secret SAMA dengan ds-service agar token kompatibel) ----
-    JWT_SECRET: str = "ganti-dengan-secret-acak-panjang-di-produksi"
+    JWT_SECRET: str = ""
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 8
 
     # ---- PostgreSQL (database sama) ----
-    DATABASE_URL: str = "postgresql+psycopg2://riskfinder:riskfinder@postgres:5432/riskfinder"
+    DATABASE_URL: str = ""
 
     # ---- Docker Volume (artifact .pkl dari Data Scientist) ----
     ARTIFACT_DIR: str = "/artifacts"
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     DEFAULT_MODEL_FILE: str = "best_credit_model_V1.pkl"
     DEFAULT_PREP_FILE: str = "preprocessing_artifacts_V1.pkl"
 
-    CORS_ORIGINS: str = "http://localhost:5173,https://*.vercel.app"
+    CORS_ORIGINS: str = "http://localhost:5173"
 
     class Config:
         env_file = ".env"
