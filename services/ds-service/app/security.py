@@ -22,7 +22,7 @@ _RAW_USERS = {
     "intan_anggreini99": "intan999",
     "doa_ibu": "ibuluvluv99",
 }
-USERS = {u: {"username": u, "hashed": pwd_context.hash(p), "role": "data-scientist"} for u, p in _RAW_USERS.items()}
+USERS = {u: {"username": u, "hashed": pwd_context.hash(p[:72]), "role": "data-scientist"} for u, p in _RAW_USERS.items()}
 
 
 def verify_password(plain: str, hashed: str) -> bool:
