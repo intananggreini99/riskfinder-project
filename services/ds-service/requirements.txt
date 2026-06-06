@@ -28,3 +28,6 @@ dvc[gdrive]==3.56.0
 # ===== Util =====
 pydantic==2.9.2
 pydantic-settings==2.6.1
+
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
