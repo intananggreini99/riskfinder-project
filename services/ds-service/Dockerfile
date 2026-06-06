@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Salin kode aplikasi
 COPY app ./app
+COPY artifacts /artifacts
 
 # Direktori artifact (Docker Volume) & data (DVC)
 RUN mkdir -p /artifacts/models /artifacts/preprocessing /data
