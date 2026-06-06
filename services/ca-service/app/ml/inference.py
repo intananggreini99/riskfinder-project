@@ -11,7 +11,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from .config import settings
+from ..config import settings
 
 _lock = threading.Lock()
 _cache = {"model": None, "artifacts": None, "model_file": None}
