@@ -1,16 +1,17 @@
 /**
- * Logo RiskFinder — dikonversi dari LogoRiskFinder.tsx ke JSX.
+ * Logo RiskFinder — palet BIRU · GOLD · PUTIH.
  *
- * Penyesuaian untuk relevansi tampilan saat ini:
- *  - prop `tone="light"` membuat teks & perisai cerah agar kontras di atas header navy gelap
- *    (memenuhi prinsip Contrast), tanpa kehilangan identitas gradien teal→cyan.
- *  - prop `mark` me-render hanya lambang perisai (tanpa wordmark) untuk ruang sempit / mobile.
+ * Penyesuaian relevansi tampilan:
+ *  - Perisai memakai gradien biru (navy→royal) sebagai identitas korporat.
+ *  - Cincin radar & wordmark "Finder" memakai emas (gold) sebagai aksen elegan.
+ *  - prop `tone="light"` mencerahkan teks/perisai agar kontras di header navy gelap.
+ *  - prop `mark` me-render hanya lambang perisai (tanpa wordmark) untuk ruang sempit.
  */
 export default function Logo({ className = 'h-10', tone = 'dark', mark = false }) {
   const light = tone === 'light'
   const textRisk = light ? '#FFFFFF' : '#0A2540'
-  const textFinder = light ? '#9FC2E8' : '#1E5AA8'
-  const tagline = light ? '#7E96B4' : '#5B6B7F'
+  const textFinder = light ? '#E0C25A' : '#C9A227'   // emas
+  const tagline = light ? '#8FA6C4' : '#5B6B7F'
 
   const uid = mark ? 'm' : 'f'
 
@@ -23,13 +24,15 @@ export default function Logo({ className = 'h-10', tone = 'dark', mark = false }
       aria-label="RiskFinder — Credit Risk Intelligence"
     >
       <defs>
+        {/* Perisai — biru */}
         <linearGradient id={`rfGrad-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={light ? '#1E5AA8' : '#0A2540'} />
-          <stop offset="100%" stopColor={light ? '#00A8E8' : '#1E5AA8'} />
+          <stop offset="100%" stopColor={light ? '#2E86C9' : '#1E5AA8'} />
         </linearGradient>
+        {/* Aksen radar — emas */}
         <linearGradient id={`rfAccent-${uid}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#00C49A" />
-          <stop offset="100%" stopColor="#00A8E8" />
+          <stop offset="0%" stopColor="#E0C25A" />
+          <stop offset="100%" stopColor="#C9A227" />
         </linearGradient>
       </defs>
 
@@ -47,8 +50,8 @@ export default function Logo({ className = 'h-10', tone = 'dark', mark = false }
         <circle cx="24" cy="24" r="5" fill="none" stroke={`url(#rfAccent-${uid})`} strokeWidth="1.6" />
         <circle cx="24" cy="24" r="10" fill="none" stroke={`url(#rfAccent-${uid})`} strokeWidth="1.2" opacity="0.7" />
         <circle cx="24" cy="24" r="15" fill="none" stroke={`url(#rfAccent-${uid})`} strokeWidth="0.8" opacity="0.4" />
-        <circle cx="24" cy="24" r="2" fill="#00C49A" />
-        <line x1="24" y1="24" x2="36" y2="14" stroke="#00C49A" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="24" cy="24" r="2" fill="#D2A93C" />
+        <line x1="24" y1="24" x2="36" y2="14" stroke="#D2A93C" strokeWidth="1.5" strokeLinecap="round" />
       </g>
 
       {!mark && (

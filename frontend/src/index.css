@@ -44,16 +44,21 @@
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold
            transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-           focus:outline-none focus-visible:ring-4 focus-visible:ring-royal/15;
+           focus:outline-none focus-visible:ring-4 focus-visible:ring-gold-400/25;
   }
   .btn-primary {
     @apply btn bg-navy text-white px-5 py-3 hover:bg-navy-700 active:scale-[0.99]
            shadow-[0_8px_24px_-12px_rgba(10,37,64,0.5)];
   }
   .btn-accent {
-    @apply btn px-5 py-3 text-white active:scale-[0.99]
-           bg-gradient-to-r from-teal to-sky hover:opacity-90
-           shadow-[0_8px_24px_-12px_rgba(0,168,232,0.6)];
+    @apply btn px-5 py-3 text-navy active:scale-[0.99]
+           bg-gradient-to-r from-gold-300 to-gold-500 hover:from-gold-400 hover:to-gold-600
+           shadow-gold;
+  }
+  .btn-gold {
+    @apply btn px-5 py-3 font-bold text-navy active:scale-[0.99]
+           bg-gradient-to-r from-gold-300 via-gold-400 to-gold-500 hover:brightness-105
+           shadow-gold;
   }
   .btn-ghost {
     @apply btn px-4 py-2.5 text-navy bg-white border border-line hover:bg-navy-50;
@@ -84,15 +89,30 @@
 
   /* Garis dekoratif di bawah judul */
   .rule-accent {
-    @apply h-1 w-12 rounded-full bg-gradient-to-r from-teal to-sky;
+    @apply h-1 w-12 rounded-full bg-gradient-to-r from-royal to-gold-400;
+  }
+
+  /* Tab navigasi (workbench MLflow) */
+  .tab {
+    @apply inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold
+           text-navy-600 transition hover:bg-navy-50;
+  }
+  .tab-active {
+    @apply bg-navy text-white hover:bg-navy;
+  }
+
+  /* Blok kode / konsol log */
+  .code-block {
+    @apply overflow-auto rounded-xl border border-navy-700/40 bg-navy-900 p-4
+           font-mono text-[12.5px] leading-relaxed text-navy-100;
   }
 }
 
 /* Latar bermotif halus (grid + radial glow) untuk kedalaman */
 .bg-grid {
   background-image:
-    radial-gradient(60rem 40rem at 75% -10%, rgba(0, 168, 232, 0.08), transparent 60%),
-    radial-gradient(50rem 40rem at 0% 110%, rgba(0, 196, 154, 0.06), transparent 55%),
+    radial-gradient(60rem 40rem at 75% -10%, rgba(46, 134, 201, 0.10), transparent 60%),
+    radial-gradient(50rem 40rem at 0% 110%, rgba(201, 162, 39, 0.12), transparent 55%),
     linear-gradient(to right, rgba(10, 37, 64, 0.035) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(10, 37, 64, 0.035) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;

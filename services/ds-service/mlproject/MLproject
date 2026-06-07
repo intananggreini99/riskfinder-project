@@ -1,0 +1,37 @@
+# =====================================================================
+#  RiskFinder · Credit Risk Analysis — MLflow Project (Build Model)
+#  Dijalankan oleh halaman "Service ML Flow" saat Data Scientist menekan
+#  Run. Backend memanggil:
+#     mlflow run . -e main --env-manager local \
+#        -P test_size=.. -P random_state=.. -P n_trials=.. -P model_version=..
+#  Entry point mereplikasi Step 1–17 Preprocessing_Modeling_EndToEnd.ipynb,
+#  lalu menyimpan preprocessing_artifacts_Vx.pkl & best_credit_model_Vx.pkl.
+# =====================================================================
+name: riskfinder-credit-risk
+
+python_env: python_env.yaml
+
+entry_points:
+  main:
+    parameters:
+      test_size:     { type: float,  default: 0.30 }
+      random_state:  { type: float,  default: 42 }
+      n_trials:      { type: float,  default: 80 }
+      model_version: { type: string, default: "" }
+    command: >
+      python train_pipeline.py
+      --test_size {test_size}
+      --random_state {random_state}
+      --n_trials {n_trials}
+      --model_version "{model_version}"
+
+  # Hanya preprocessing (menghasilkan preprocessing_artifacts_Vx.pkl saja)
+  preprocessing:
+    parameters:
+      test_size:     { type: float,  default: 0.30 }
+      random_state:  { type: float,  default: 42 }
+      model_version: { type: string, default: "" }
+    command: >
+      python train_pipeline.py --only preprocessing
+      --test_size {test_size} --random_state {random_state}
+      --model_version "{model_version}"

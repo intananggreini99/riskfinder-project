@@ -53,6 +53,7 @@ services:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-riskfinder}:${POSTGRES_PASSWORD:-riskfinder}@postgres:5432/${POSTGRES_DB:-riskfinder}
       JWT_SECRET: ${JWT_SECRET:-ganti-dengan-secret-acak-panjang-di-produksi}
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_UI_URL: ${MLFLOW_UI_URL:-http://localhost:5000}
       ARTIFACT_DIR: /artifacts
       DATA_DIR: /data
     ports:

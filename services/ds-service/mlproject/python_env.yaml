@@ -1,0 +1,19 @@
+# Lingkungan Python untuk MLflow Project.
+# Pada container ds-service, paket di bawah SUDAH terpasang (lihat requirements.txt),
+# sehingga backend menjalankan project dengan `--env-manager local` (tanpa membangun
+# ulang environment / tanpa akses internet). File ini tetap disertakan agar project
+# bersifat reproducible bila dijalankan `mlflow run` di mesin lain.
+python: "3.11"
+build_dependencies:
+  - pip
+dependencies:
+  - mlflow==2.17.2
+  - scikit-learn==1.5.2
+  - xgboost==2.1.2
+  - pandas==2.2.3
+  - numpy==1.26.4
+  - imbalanced-learn==0.12.4
+  - joblib==1.4.2
+  - openpyxl==3.1.5
+  - xlrd==2.0.1
+  - dvc[gdrive]==3.56.0

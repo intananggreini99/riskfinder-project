@@ -11,6 +11,10 @@ import axios from 'axios'
 const DS_BASE = import.meta.env.VITE_DS_API_URL || '/api/ds'
 const CA_BASE = import.meta.env.VITE_CA_API_URL || '/api/ca'
 
+// URL web UI MLflow yang dapat dibuka browser (iframe / tab baru pada halaman Build Model).
+// Diisi di Vercel → Settings → Environment Variables. Kosong = pakai URL dari backend (/mlflow/ui-url).
+export const MLFLOW_UI_URL = import.meta.env.VITE_MLFLOW_UI_URL || ''
+
 export const TOKEN_KEY = 'rf_token'
 export const SESSION_KEY = 'rf_session'
 

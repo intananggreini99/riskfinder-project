@@ -57,11 +57,20 @@ Backend: ds-service `http://localhost:8081/docs`, ca-service `http://localhost:8
 
 Langkah lengkap step-by-step ada di **`docs/RiskFinder-Panduan.docx`**.
 
-## Pipeline ML
+## Pipeline ML — Build Model via MLflow Projects
 
-Preprocessing + modeling mengikuti `Preprocessing_Modeling_EndToEnd.ipynb` (Step 1–17):
+Menu **Build Model** membuka **workbench MLflow Projects** (`frontend ServiceMLFlow`),
+bukan pipeline otomatis. Data Scientist memilih entry point + parameter, lalu menekan
+**Run** → backend menjalankan `mlflow run services/ds-service/mlproject -e main
+--env-manager local -P ...`. Entry point (`mlproject/train_pipeline.py`) memanggil
+`app/ml/pipeline.py` yang mereplikasi `Preprocessing_Modeling_EndToEnd.ipynb` (Step 1–17):
 drop ID & rename target, drop duplicates, tandai inkonsistensi → imputasi modus per-kelas,
 IQR capping, feature extraction, encoding (OHE/label), binning AGE, feature selection
-(korelasi + ANOVA), StandardScaler, lalu compare/tune/evaluasi model dan simpan
-`preprocessing_artifacts.pkl` + `best_credit_model.pkl`. Inference (`ca-service`)
-mereplikasi transformasi yang sama persis sebelum memprediksi.
+(korelasi + ANOVA), StandardScaler, lalu compare/tune/evaluasi model. Hasilnya disimpan
+**otomatis** sebagai `preprocessing_artifacts_Vx.pkl` + `best_credit_model_Vx.pkl` ke
+Docker Volume + DVC, dengan set train/test ke DVC dan katalog ke PostgreSQL — versi
+(V1, V2, …) di-increment otomatis. Inference (`ca-service`) mereplikasi transformasi
+yang sama persis sebelum memprediksi.
+
+Web UI MLflow Tracking dapat dibuka dari tab **MLflow Tracking UI** pada halaman tsb.
+(set `VITE_MLFLOW_UI_URL` di frontend & `MLFLOW_UI_URL` di ds-service).

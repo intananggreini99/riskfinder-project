@@ -94,7 +94,7 @@ export default function ModelEvaluation() {
                 <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #E6ECF3', fontSize: 13 }} />
                 <Legend wrapperStyle={{ fontSize: 13, paddingTop: 8 }} />
                 <Line type="monotone" dataKey="train" name="Training" stroke="#1E5AA8" strokeWidth={2.4} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="test" name="Testing" stroke="#00C49A" strokeWidth={2.4} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="test" name="Testing" stroke="#C9A227" strokeWidth={2.4} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

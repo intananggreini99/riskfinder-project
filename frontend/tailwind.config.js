@@ -1,10 +1,34 @@
 /** @type {import('tailwindcss').Config} */
+
+/**
+ * Palet RiskFinder — BIRU · GOLD · PUTIH (banking corporate, minimalis, elegan).
+ *
+ * Catatan migrasi warna:
+ *  - `gold` adalah aksen utama yang baru (emas perbankan, hangat namun tidak norak).
+ *  - Token lama `teal` SENGAJA dialiaskan ke nilai `gold` agar seluruh kelas lama
+ *    (mis. `text-teal-600`, `bg-teal/10`, `from-teal`) otomatis ikut tema emas tanpa
+ *    harus mengubah puluhan className di seluruh halaman → menjaga prinsip Consistency.
+ *  - Makna sukses/bahaya tetap memakai token `risk` (hijau/merah), bukan `teal`,
+ *    sehingga tidak ada ambiguitas semantik.
+ */
+const gold = {
+  DEFAULT: '#C9A227',
+  50: '#FBF6E7',
+  100: '#F6EBC4',
+  200: '#ECD78D',
+  300: '#E0C25A',
+  400: '#D2A93C',
+  500: '#C9A227',
+  600: '#A07D17',
+  700: '#7C5F11',
+}
+
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
-        // Palet korporat perbankan — diturunkan dari logo RiskFinder
+        // Biru korporat — diturunkan dari logo RiskFinder
         navy: {
           DEFAULT: '#0A2540',
           50: '#F2F5F9',
@@ -24,18 +48,16 @@ export default {
           500: '#1E5AA8',
           600: '#194B8C',
         },
-        teal: {
-          DEFAULT: '#00C49A',
-          400: '#14D6AC',
-          500: '#00C49A',
-          600: '#00A081',
-        },
         sky: {
-          DEFAULT: '#00A8E8',
-          400: '#33BBEE',
-          500: '#00A8E8',
-          600: '#008CC2',
+          DEFAULT: '#2E86C9',
+          400: '#5AA4DC',
+          500: '#2E86C9',
+          600: '#1F6BA8',
         },
+        // Aksen emas (baru)
+        gold,
+        // Alias kompatibilitas: kelas `*-teal-*` lama → emas
+        teal: gold,
         steel: '#5B6B7F',
         risk: {
           high: '#E11D48',
@@ -43,7 +65,7 @@ export default {
           low: '#0E9F6E',
           'low-bg': '#F0FAF6',
         },
-        canvas: '#F6F8FB',
+        canvas: '#F7F9FC',
         line: '#E6ECF3',
       },
       fontFamily: {
@@ -56,6 +78,7 @@ export default {
         card: '0 1px 2px rgba(10,37,64,0.04), 0 8px 24px -12px rgba(10,37,64,0.12)',
         'card-hover': '0 2px 4px rgba(10,37,64,0.06), 0 16px 40px -16px rgba(10,37,64,0.20)',
         ring: '0 0 0 4px rgba(30,90,168,0.10)',
+        gold: '0 8px 24px -12px rgba(201,162,39,0.55)',
       },
       borderRadius: {
         xl: '0.875rem',

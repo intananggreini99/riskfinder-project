@@ -32,8 +32,13 @@ class Settings(BaseSettings):
     )
 
     # ---- MLflow ----
-    MLFLOW_TRACKING_URI: str = "http://mlflow:5000"
+    MLFLOW_TRACKING_URI: str = "http://mlflow:5000"     # dipakai service untuk logging
     MLFLOW_EXPERIMENT: str = "credit-risk-build"
+    # URL web UI MLflow yang dapat dibuka BROWSER (untuk iframe & tombol "Buka MLflow").
+    # Lokal: http://localhost:5000 · Produksi: URL publik server MLflow Anda.
+    MLFLOW_UI_URL: str = "http://localhost:5000"
+    # Lokasi MLflow Project di dalam container (berisi MLproject + train_pipeline.py)
+    MLPROJECT_DIR: str = "/app/mlproject"
 
     # ---- CORS (origin frontend Vercel) ----
     CORS_ORIGINS: str = "http://localhost:5173"

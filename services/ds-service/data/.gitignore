@@ -1,0 +1,6 @@
+# Set train/test hasil Build Model (di-track DVC, jangan commit ke Git)
+X_train_*.csv
+X_test_*.csv
+y_train_*.csv
+y_test_*.csv
+last_run_result.json

@@ -14,7 +14,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Salin kode aplikasi
 COPY app ./app
+COPY mlproject ./mlproject
 COPY artifacts /artifacts
+# Dataset di-bake agar Build Model (MLflow Project) tetap jalan walau DVC remote
+# (Google Drive) tidak terjangkau dari host container. Bila kredensial DVC tersedia,
+# store.pull_dataset() akan menyegarkannya via `dvc pull` lebih dulu.
+COPY data /data
 
 # Direktori artifact (Docker Volume) & data (DVC)
 RUN mkdir -p /artifacts/models /artifacts/preprocessing /data

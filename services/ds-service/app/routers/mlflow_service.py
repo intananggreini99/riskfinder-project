@@ -1,9 +1,14 @@
 """Router Service ML Flow (Build Model) — Divisi Data Scientist.
 
-Menjalankan preprocessing + modeling end-to-end, mencatat ke MLflow,
-menyimpan artifact ke Docker Volume + DVC, dan set data ke DVC + PostgreSQL.
+Memberi web UI MLflow Projects: menyajikan source code project (preprocessing +
+modeling = Step 1–17), menjalankan `mlflow run` saat Data Scientist menekan Run,
+mencatat ke MLflow, lalu menyimpan preprocessing_artifacts_Vx.pkl &
+best_credit_model_Vx.pkl secara otomatis ke Docker Volume + DVC + PostgreSQL.
 """
-import uuid
+import json
+import os
+import subprocess
+import sys
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -11,15 +16,61 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_db
 from ..security import get_current_user
-from ..schemas import RunConfig, RunResult, ArtifactInfo, DatasetInfo
-from ..ml import store
-from ..ml.preprocessing import run_preprocessing
-from ..ml.training import train_and_evaluate
-from .. import models
+from ..schemas import (
+    RunConfig, RunResult, ArtifactInfo, DatasetInfo,
+    ProjectFile, ProjectSpec, ProjectRunRequest, ProjectRunResult,
+)
+from ..ml import store, pipeline
 
 router = APIRouter(prefix="/mlflow", tags=["ml-flow"])
 
+# Berkas project yang ditampilkan di web UI (path relatif → metadata tampilan)
+_PROJECT_FILES = [
+    ("mlproject/MLproject",       "MLproject",        "yaml",   False),
+    ("mlproject/python_env.yaml", "python_env.yaml",  "yaml",   False),
+    ("mlproject/train_pipeline.py", "train_pipeline.py", "python", True),
+    ("app/ml/preprocessing.py",   "preprocessing.py", "python", True),
+    ("app/ml/training.py",        "training.py",      "python", True),
+]
+_APP_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # → /app
 
+
+def _read(path: str) -> str:
+    full = os.path.join(_APP_ROOT, path)
+    try:
+        with open(full, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:  # pragma: no cover
+        return f"# (tidak dapat memuat {path}: {e})"
+
+
+# --------------------------- META ---------------------------
+@router.get("/ui-url")
+def mlflow_ui(user=Depends(get_current_user)):
+    """URL web UI MLflow yang dapat dibuka browser (iframe / tab baru)."""
+    return {"url": settings.MLFLOW_UI_URL, "experiment": settings.MLFLOW_EXPERIMENT}
+
+
+@router.get("/projects/spec", response_model=ProjectSpec)
+def project_spec(user=Depends(get_current_user)):
+    """Spesifikasi MLflow Project: source code + parameter default untuk web UI."""
+    files = [
+        ProjectFile(path=p, label=label, language=lang, editable=ed, content=_read(p))
+        for (p, label, lang, ed) in _PROJECT_FILES
+    ]
+    return ProjectSpec(
+        name="riskfinder-credit-risk",
+        entry_points=["main", "preprocessing"],
+        default_params={"test_size": 0.30, "random_state": 42, "n_trials": 80, "model_version": ""},
+        files=files,
+        mlflow_ui_url=settings.MLFLOW_UI_URL,
+        experiment=settings.MLFLOW_EXPERIMENT,
+        dataset_file=settings.DATASET_FILE,
+        next_version=pipeline._next_auto_version(),
+    )
+
+
+# --------------------------- DATA ---------------------------
 @router.post("/pull-data")
 def pull_data(user=Depends(get_current_user)):
     """1.a.1 — tarik dataset dari DVC (Google Drive)."""
@@ -31,91 +82,108 @@ def pull_data(user=Depends(get_current_user)):
         raise HTTPException(status_code=424, detail=str(e))
 
 
+# --------------------------- RUN (via MLflow Projects) ---------------------------
+@router.post("/projects/run", response_model=ProjectRunResult)
+def run_project(body: ProjectRunRequest, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Jalankan MLflow Project (`mlflow run`) lalu kembalikan log + ringkasan hasil.
+
+    Entry point `main` menjalankan Step 1–17 dan menyimpan artifact .pkl otomatis.
+    """
+    entry = body.entry_point if body.entry_point in ("main", "preprocessing") else "main"
+    version_arg = (body.model_version or "").strip()
+    result_path = os.path.join(settings.ARTIFACT_DIR, "last_run_result.json")
+
+    # bersihkan hasil lama agar tidak salah baca
+    try:
+        os.remove(result_path)
+    except OSError:
+        pass
+
+    env = {
+        **os.environ,
+        "PYTHONPATH": _APP_ROOT,
+        "RF_RUN_RESULT": result_path,
+        "MLFLOW_TRACKING_URI": settings.MLFLOW_TRACKING_URI,
+    }
+    params = [
+        "-P", f"test_size={body.test_size}",
+        "-P", f"random_state={body.random_state}",
+        "-P", f"n_trials={body.n_trials}",
+        "-P", f"model_version={version_arg}",
+    ]
+    mlflow_cmd = ["mlflow", "run", settings.MLPROJECT_DIR, "-e", entry, "--env-manager", "local", *params]
+    cmd_str = (
+        f"mlflow run {settings.MLPROJECT_DIR} -e {entry} --env-manager local "
+        f"-P test_size={body.test_size} -P random_state={body.random_state} "
+        f"-P n_trials={body.n_trials} -P model_version=\"{version_arg}\""
+    )
+
+    logs = f"$ {cmd_str}\n"
+    ran = False
+    try:
+        proc = subprocess.run(mlflow_cmd, cwd=settings.MLPROJECT_DIR, env=env,
+                              capture_output=True, text=True, timeout=1800)
+        logs += (proc.stdout or "") + (proc.stderr or "")
+        ran = True
+    except FileNotFoundError:
+        logs += "[info] CLI `mlflow` tidak ditemukan; menjalankan entry point langsung.\n"
+    except subprocess.TimeoutExpired:
+        logs += "\n[ERROR] eksekusi melebihi batas waktu (30 menit).\n"
+
+    # Fallback: bila `mlflow run` tak menulis hasil (gagal start), eksekusi script langsung.
+    if not os.path.exists(result_path):
+        if ran:
+            logs += "\n[info] `mlflow run` tidak menghasilkan output; fallback eksekusi langsung.\n"
+        fb = [sys.executable or "python", "train_pipeline.py",
+              "--test_size", str(body.test_size), "--random_state", str(body.random_state),
+              "--n_trials", str(body.n_trials), "--model_version", version_arg]
+        if entry == "preprocessing":
+            fb += ["--only", "preprocessing"]
+        logs += f"$ python train_pipeline.py (entry={entry})\n"
+        try:
+            proc = subprocess.run(fb, cwd=settings.MLPROJECT_DIR, env=env,
+                                  capture_output=True, text=True, timeout=1800)
+            logs += (proc.stdout or "") + (proc.stderr or "")
+        except Exception as e:  # noqa: BLE001
+            logs += f"\n[ERROR] fallback gagal: {e}\n"
+
+    # Baca ringkasan hasil yang ditulis entry point
+    data = {}
+    if os.path.exists(result_path):
+        try:
+            with open(result_path) as f:
+                data = json.load(f)
+        except Exception as e:  # pragma: no cover
+            logs += f"\n[ERROR] gagal membaca hasil: {e}\n"
+
+    status = data.get("status", "error")
+    art = data.get("artifacts")
+    return ProjectRunResult(
+        status=status,
+        command=cmd_str,
+        logs=logs.strip(),
+        run_id=data.get("run_id"),
+        mlflow_run_id=data.get("mlflow_run_id"),
+        version=data.get("version"),
+        algorithm=data.get("algorithm"),
+        metrics=data.get("metrics"),
+        artifacts=ArtifactInfo(**art) if art else None,
+        datasets=[DatasetInfo(**d) for d in data.get("datasets", [])],
+        mlflow_ui_url=settings.MLFLOW_UI_URL,
+        error=data.get("error"),
+    )
+
+
+# --------------------------- RUN (legacy, sinkron in-process) ---------------------------
 @router.post("/run", response_model=RunResult)
 def run_pipeline(cfg: RunConfig, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    """1.a.2–1.a.4 — preprocessing + modeling + simpan artifact & set data."""
-    # 1) muat dataset
+    """Kompatibilitas: jalankan pipeline langsung di proses API (tanpa subprocess)."""
     try:
-        df = store.pull_dataset()
+        res = pipeline.run_build(cfg.model_dump(), db=db, log=lambda *_: None)
     except FileNotFoundError as e:
         raise HTTPException(status_code=424, detail=str(e))
-
-    run_id = "run_" + uuid.uuid4().hex[:10]
-    version = cfg.model_version or "V1"
-
-    # 2) MLflow tracking (opsional, tidak menggagalkan run bila server mati)
-    mlflow_run_id = None
-    try:
-        import mlflow
-        mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
-        mlflow.set_experiment(settings.MLFLOW_EXPERIMENT)
-        mlflow.start_run(run_name=run_id)
-        mlflow_run_id = mlflow.active_run().info.run_id
-        mlflow.log_params({"test_size": cfg.test_size, "random_state": cfg.random_state, "n_trials": cfg.n_trials})
-    except Exception:
-        mlflow = None
-
-    # 3) preprocessing (Step 1–11)
-    Xtr, Xte, ytr, yte, artifacts = run_preprocessing(df, cfg.test_size, cfg.random_state)
-
-    # 4) modeling (Step 12–16)
-    best_model, metrics, evaluation = train_and_evaluate(Xtr, Xte, ytr, yte, cfg.n_trials)
-
-    # 5) simpan artifact (Step 17) → Docker Volume + DVC + cache evaluasi
-    art = store.save_artifacts(artifacts, best_model, version)
-    store.save_evaluation(version, {**evaluation, "pair_name": f"Model_{version} + preprocessing_{version}"})
-
-    # 6) simpan set data → DVC (CSV) + metadata PostgreSQL
-    splits = store.save_splits(Xtr, Xte, ytr, yte, run_id)
-
-    if mlflow:
-        try:
-            mlflow.log_metrics({k: v for k, v in metrics.items() if isinstance(v, (int, float))})
-            mlflow.end_run()
-        except Exception:
-            pass
-
-    # 7) persist katalog ke PostgreSQL
-    try:
-        run = models.TrainingRun(
-            run_id=run_id, mlflow_run_id=mlflow_run_id,
-            test_size=cfg.test_size, random_state=cfg.random_state, n_trials=cfg.n_trials,
-            algorithm=metrics["algorithm"],
-            roc_auc_train=metrics["roc_auc_train"], roc_auc_test=metrics["roc_auc_test"],
-            gap_train_test=metrics["gap"], f1_score=metrics["f1"],
-            precision_score=metrics["precision"], recall_score=metrics["recall"],
-            accuracy_score=metrics["accuracy"],
-        )
-        db.add(run)
-        db.add(models.PreprocessingArtifact(
-            preprocessing_id=f"preprocessing_{version}", filename=art["preprocessing"],
-            run_id=run_id, n_features=len(artifacts["final_columns"]),
-        ))
-        db.add(models.ModelArtifact(
-            model_id=f"model_{version}", filename=art["model"], run_id=run_id,
-            algorithm=metrics["algorithm"], roc_auc=metrics["roc_auc_test"],
-        ))
-        for s in splits:
-            db.add(models.DatasetSplit(
-                run_id=run_id, split_name=s["name"].replace(".csv", ""),
-                filename=s["name"], n_rows=s["rows"], dvc_path=s.get("dvc_path"),
-            ))
-        db.commit()
-    except Exception:
-        db.rollback()  # katalog gagal tidak menggagalkan respons pipeline
-
     return RunResult(
-        run_id=run_id,
-        metrics={
-            "roc_auc_test": f"{metrics['roc_auc_test']:.4f}",
-            "roc_auc_train": f"{metrics['roc_auc_train']:.4f}",
-            "f1": f"{metrics['f1']:.4f}",
-            "recall": f"{metrics['recall']:.4f}",
-            "gap": f"{metrics['gap']:.4f}",
-        },
-        artifacts=ArtifactInfo(
-            preprocessing=art["preprocessing"], model=art["model"],
-            preprocessing_size=art["preprocessing_size"], model_size=art["model_size"],
-        ),
-        datasets=[DatasetInfo(name=s["name"], rows=s["rows"]) for s in splits],
+        run_id=res["run_id"], metrics=res["metrics"],
+        artifacts=ArtifactInfo(**res["artifacts"]),
+        datasets=[DatasetInfo(**d) for d in res["datasets"]],
     )

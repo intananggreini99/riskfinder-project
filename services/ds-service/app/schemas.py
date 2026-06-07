@@ -38,6 +38,51 @@ class RunResult(BaseModel):
     datasets: List[DatasetInfo]
 
 
+# ---------- Build Model · MLflow Projects (web UI MLflow) ----------
+class ProjectFile(BaseModel):
+    """Satu berkas pada MLflow Project yang ditampilkan & dapat diedit di web UI."""
+    path: str                       # mis. "MLproject", "train_pipeline.py", "preprocessing.py"
+    label: str                      # judul ramah untuk tab
+    language: str = "python"        # python | yaml | text → untuk syntax highlight
+    editable: bool = False
+    content: str
+
+
+class ProjectSpec(BaseModel):
+    """Spesifikasi MLflow Project + parameter default untuk halaman Service ML Flow."""
+    name: str
+    entry_points: List[str]
+    default_params: Dict[str, Any]
+    files: List[ProjectFile]
+    mlflow_ui_url: str
+    experiment: str
+    dataset_file: str
+    next_version: str
+
+
+class ProjectRunRequest(BaseModel):
+    entry_point: str = "main"
+    test_size: float = 0.30
+    random_state: int = 42
+    n_trials: int = 80
+    model_version: Optional[str] = ""
+
+
+class ProjectRunResult(BaseModel):
+    status: str                     # success | error
+    command: str                    # perintah `mlflow run ...` yang dieksekusi
+    logs: str                       # gabungan stdout/stderr eksekusi
+    run_id: Optional[str] = None
+    mlflow_run_id: Optional[str] = None
+    version: Optional[str] = None
+    algorithm: Optional[str] = None
+    metrics: Optional[Dict[str, Any]] = None
+    artifacts: Optional[ArtifactInfo] = None
+    datasets: List[DatasetInfo] = []
+    mlflow_ui_url: Optional[str] = None
+    error: Optional[str] = None
+
+
 # ---------- Monitoring · Management ----------
 class ModelOut(BaseModel):
     id: str
