@@ -1,10 +1,25 @@
-"""Skema Pydantic (request/response) untuk Data Scientist Sistem."""
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel
+"""Skema Pydantic request/response untuk Data Scientist Service RiskFinder."""
+
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class RFBaseModel(BaseModel):
+    """
+    Base model untuk seluruh schema RiskFinder.
+
+    Pydantic v2 memiliki protected namespace default untuk nama field
+    yang diawali dengan "model_". Karena aplikasi RiskFinder memang
+    memakai nama field seperti model_version dan model_size, konfigurasi
+    protected_namespaces dikosongkan agar tidak muncul UserWarning.
+    """
+
+    model_config = ConfigDict(protected_namespaces=())
 
 
 # ---------- Auth ----------
-class TokenResponse(BaseModel):
+class TokenResponse(RFBaseModel):
     access_token: str
     token_type: str = "bearer"
     username: str
@@ -12,44 +27,46 @@ class TokenResponse(BaseModel):
 
 
 # ---------- Build Model / ML Flow ----------
-class RunConfig(BaseModel):
+class RunConfig(RFBaseModel):
     test_size: float = 0.30
     random_state: int = 42
     n_trials: int = 80
     model_version: Optional[str] = ""
 
 
-class ArtifactInfo(BaseModel):
+class ArtifactInfo(RFBaseModel):
     preprocessing: str
     model: str
     preprocessing_size: Optional[str] = None
     model_size: Optional[str] = None
 
 
-class DatasetInfo(BaseModel):
+class DatasetInfo(RFBaseModel):
     name: str
     rows: int
 
 
-class RunResult(BaseModel):
+class RunResult(RFBaseModel):
     run_id: str
     metrics: Dict[str, Any]
     artifacts: ArtifactInfo
     datasets: List[DatasetInfo]
 
 
-# ---------- Build Model · MLflow Projects (web UI MLflow) ----------
-class ProjectFile(BaseModel):
-    """Satu berkas pada MLflow Project yang ditampilkan & dapat diedit di web UI."""
-    path: str                       # mis. "MLproject", "train_pipeline.py", "preprocessing.py"
-    label: str                      # judul ramah untuk tab
-    language: str = "python"        # python | yaml | text → untuk syntax highlight
+# ---------- Build Model · MLflow Projects ----------
+class ProjectFile(RFBaseModel):
+    """Satu berkas pada MLflow Project yang ditampilkan di web UI."""
+
+    path: str
+    label: str
+    language: str = "python"
     editable: bool = False
     content: str
 
 
-class ProjectSpec(BaseModel):
-    """Spesifikasi MLflow Project + parameter default untuk halaman Service ML Flow."""
+class ProjectSpec(RFBaseModel):
+    """Spesifikasi MLflow Project dan parameter default halaman Service ML Flow."""
+
     name: str
     entry_points: List[str]
     default_params: Dict[str, Any]
@@ -60,7 +77,7 @@ class ProjectSpec(BaseModel):
     next_version: str
 
 
-class ProjectRunRequest(BaseModel):
+class ProjectRunRequest(RFBaseModel):
     entry_point: str = "main"
     test_size: float = 0.30
     random_state: int = 42
@@ -68,23 +85,23 @@ class ProjectRunRequest(BaseModel):
     model_version: Optional[str] = ""
 
 
-class ProjectRunResult(BaseModel):
-    status: str                     # success | error
-    command: str                    # perintah `mlflow run ...` yang dieksekusi
-    logs: str                       # gabungan stdout/stderr eksekusi
+class ProjectRunResult(RFBaseModel):
+    status: str
+    command: str
+    logs: str
     run_id: Optional[str] = None
     mlflow_run_id: Optional[str] = None
     version: Optional[str] = None
     algorithm: Optional[str] = None
     metrics: Optional[Dict[str, Any]] = None
     artifacts: Optional[ArtifactInfo] = None
-    datasets: List[DatasetInfo] = []
+    datasets: List[DatasetInfo] = Field(default_factory=list)
     mlflow_ui_url: Optional[str] = None
     error: Optional[str] = None
 
 
 # ---------- Monitoring · Management ----------
-class ModelOut(BaseModel):
+class ModelOut(RFBaseModel):
     id: str
     name: str
     algo: Optional[str] = None
@@ -92,29 +109,29 @@ class ModelOut(BaseModel):
     created: Optional[str] = None
 
 
-class PrepOut(BaseModel):
+class PrepOut(RFBaseModel):
     id: str
     name: str
     features: Optional[int] = None
     created: Optional[str] = None
 
 
-class PairCreate(BaseModel):
+class PairCreate(RFBaseModel):
     model: str
     preprocessing: str
 
 
-class PairOut(BaseModel):
+class PairOut(RFBaseModel):
     id: str
     name: str
     model: str
     preprocessing: str
     active: bool = False
-    metrics: Dict[str, Any] = {}
+    metrics: Dict[str, Any] = Field(default_factory=dict)
 
 
 # ---------- Monitoring · Evaluation ----------
-class EvaluationOut(BaseModel):
+class EvaluationOut(RFBaseModel):
     pair_name: str
     learning_curve: List[Dict[str, Any]]
     confusion_matrix: Dict[str, int]
@@ -125,7 +142,7 @@ class EvaluationOut(BaseModel):
 
 
 # ---------- Monitoring · Deployment ----------
-class TestingHistoryItem(BaseModel):
+class TestingHistoryItem(RFBaseModel):
     id: str
     score: float
     label: int
@@ -133,7 +150,7 @@ class TestingHistoryItem(BaseModel):
     input: Dict[str, Any]
 
 
-class TestingHistoryOut(BaseModel):
+class TestingHistoryOut(RFBaseModel):
     avg_score: float
     total: int
     history: List[TestingHistoryItem]
