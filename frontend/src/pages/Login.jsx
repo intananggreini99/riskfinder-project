@@ -98,7 +98,8 @@ export default function Login() {
             <Logo className="h-10" />
           </div>
 
-          <h2 className="font-display text-3xl font-semibold text-navy">Hi! Welcome to RiskFinder</h2>
+          <h2 className="font-display text-3xl font-semibold text-navy">Hi !</h2>
+          <p className="mt-2 text-sm text-steel">Welcome to RiskFinder.</p>
 
           {/* Pemilih divisi (Divisi) */}
           <div className="mt-7">
@@ -176,7 +177,7 @@ export default function Login() {
               {loading ? <Spinner /> : <>Masuk <ArrowRight className="h-4 w-4" /></>}
             </button>
           </form>
-          
+
         </div>
       </div>
     </div>
