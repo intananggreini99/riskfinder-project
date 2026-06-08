@@ -29,8 +29,7 @@ export default function MainMenu() {
           Selamat datang, {session?.username?.split('_')[0] || 'Data Scientist'} 👋
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-steel">
-          Pilih layanan yang ingin Anda gunakan. Seluruh artifact tersimpan terpusat di Docker Volume
-          dan terversioning melalui DVC.
+          Pilih layanan yang ingin Anda gunakan.
         </p>
       </div>
 
