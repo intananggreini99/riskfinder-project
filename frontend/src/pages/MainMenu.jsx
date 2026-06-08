@@ -8,16 +8,12 @@ const CARDS = [
     to: '/app/mlflow',
     icon: Hammer,
     title: 'Build Model',
-    desc: 'Buka workbench MLflow Projects: jalankan source code preprocessing & modeling (Step 1–17) untuk menghasilkan versi preprocessing & model baru.',
-    points: ['Web UI MLflow Projects', 'Jalankan source code, bukan pipeline otomatis', 'preprocessing_Vx.pkl & model_Vx.pkl tersimpan otomatis'],
     accent: 'from-royal to-gold-400',
   },
   {
     to: '/app/monitoring',
     icon: Activity,
     title: 'Monitoring Model',
-    desc: 'Kelola pasangan Model + Preprocessing, evaluasi performa, pilih model deployment, dan pantau skor prediksi testing.',
-    points: ['Management Model + Preprocessing', 'Evaluasi (ROC AUC, dsb.)', 'Monitoring skor & histori testing'],
     accent: 'from-navy to-royal',
   },
 ]
@@ -58,7 +54,7 @@ export default function MainMenu() {
           </Link>
         ))}
       </div>
-      
+
     </AppShell>
   )
 }
