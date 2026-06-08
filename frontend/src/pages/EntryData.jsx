@@ -117,14 +117,7 @@ export default function EntryData() {
         <ArrowLeft className="h-4 w-4" /> Beranda
       </Link>
 
-      <SectionTitle eyebrow="Credit Analysis" title="Entry Data Peminjam"
-        desc="Masukkan data peminjam. Satu entry = satu peminjam. Tambahkan beberapa peminjam lalu jalankan analisis sekaligus."
-        right={
-          <div className="hidden gap-2 sm:flex">
-            <button onClick={() => fillSample('good')} className="btn-ghost btn-sm"><Wand2 className="h-4 w-4" /> Contoh lancar</button>
-            <button onClick={() => fillSample('risky')} className="btn-ghost btn-sm"><Wand2 className="h-4 w-4" /> Contoh berisiko</button>
-          </div>
-        } />
+      <SectionTitle eyebrow="Credit Analysis" title="Entry Data Peminjam"/>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* Form */}

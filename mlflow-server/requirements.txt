@@ -1,6 +1,0 @@
-# mlflow-server/requirements.txt
-# Versi disematkan (pinned) agar build reprodusibel — Bab 5.2 panduan.
-# Anda boleh menaikkan ke rilis MLflow 3.x terbaru saat menyiapkannya.
-mlflow==3.11.1           # Tracking server + UI + REST API + model registry
-psycopg2-binary==2.9.9   # Driver koneksi PostgreSQL (backend store)
-boto3==1.34.0            # Klien S3-compatible untuk artifact store (MinIO / R2 / S3)
