@@ -98,8 +98,7 @@ export default function Login() {
             <Logo className="h-10" />
           </div>
 
-          <h2 className="font-display text-3xl font-semibold text-navy">Masuk ke akun Anda</h2>
-          <p className="mt-2 text-sm text-steel">Pilih divisi lalu masukkan kredensial Anda.</p>
+          <h2 className="font-display text-3xl font-semibold text-navy">Hi! Welcome to RiskFinder</h2>
 
           {/* Pemilih divisi (Divisi) */}
           <div className="mt-7">
@@ -126,7 +125,6 @@ export default function Login() {
                       <d.icon className="h-4.5 w-4.5" strokeWidth={2.1} />
                     </div>
                     <p className="text-sm font-bold text-navy">{d.name}</p>
-                    <p className="mt-0.5 text-[11px] leading-snug text-steel">{d.desc}</p>
                   </button>
                 )
               })}
@@ -178,10 +176,7 @@ export default function Login() {
               {loading ? <Spinner /> : <>Masuk <ArrowRight className="h-4 w-4" /></>}
             </button>
           </form>
-
-          <p className="mt-6 text-center text-xs text-navy-300">
-            Akses aman dengan token JWT · Hubungi admin sistem untuk kredensial.
-          </p>
+          
         </div>
       </div>
     </div>
