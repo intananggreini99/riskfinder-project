@@ -71,11 +71,7 @@ export default function AppShell({ children, max = 'max-w-7xl' }) {
 
       <footer className="border-t border-line py-6">
         <div className={`mx-auto flex flex-col items-center justify-between gap-2 px-4 text-xs text-steel sm:flex-row sm:px-6 ${max}`}>
-          <span>© {new Date().getFullYear()} RiskFinder Team · Credit Risk Intelligence</span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-teal" />
-            Model aktif · best_credit_model.pkl
-          </span>
+          <span>© {new Date().getFullYear()} RiskFinder Team</span>
         </div>
       </footer>
     </div>

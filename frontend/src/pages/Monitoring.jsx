@@ -149,17 +149,16 @@ function ManagementView({ models, preps, pairs, setPairs, onToast }) {
 
   return (
     <div className="animate-fade-in">
-      <SectionTitle eyebrow="Sidebar · Management Model" title="Model & Preprocessing Siap Pakai"
-        desc="Buat pasangan Model + Preprocessing dari artifact yang tersedia. Klik pasangan untuk melihat evaluasi, lalu pilih satu untuk deployment FastAPI." />
+      <SectionTitle title="Model & Preprocessing Artifacts Management"/>
 
       {/* List siap pakai */}
       <div className="grid gap-5 md:grid-cols-2">
-        <ArtifactColumn title="Model (.pkl)" icon={Cpu} items={models} selected={selModel} onSelect={setSelModel}
+        <ArtifactColumn title="Model Artifacts" icon={Cpu} items={models} selected={selModel} onSelect={setSelModel}
           render={(m) => (<>
             <p className="font-mono text-sm font-semibold text-navy">{m.id}</p>
             <p className="text-xs text-steel">{m.algo} · ROC AUC {m.roc_auc}</p>
           </>)} />
-        <ArtifactColumn title="Preprocessing (.pkl)" icon={Layers} items={preps} selected={selPrep} onSelect={setSelPrep}
+        <ArtifactColumn title="Preprocessing Artifacts" icon={Layers} items={preps} selected={selPrep} onSelect={setSelPrep}
           render={(p) => (<>
             <p className="font-mono text-sm font-semibold text-navy">{p.id}</p>
             <p className="text-xs text-steel">{p.features} fitur final</p>
@@ -168,7 +167,7 @@ function ManagementView({ models, preps, pairs, setPairs, onToast }) {
 
       {/* Pembuat pasangan */}
       <div className="mt-5 card p-5">
-        <p className="mb-3 text-sm font-bold text-navy">Buat Pasangan Model + Preprocessing</p>
+        <p className="mb-3 text-sm font-bold text-navy">Building a Machine Learning Pipeline</p>
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
           <div className="flex flex-1 items-center gap-3">
             <span className="chip bg-navy-100 text-navy">{selModel || 'pilih model'}</span>
@@ -176,7 +175,7 @@ function ManagementView({ models, preps, pairs, setPairs, onToast }) {
             <span className="chip bg-navy-100 text-navy">{selPrep || 'pilih preprocessing'}</span>
           </div>
           <button onClick={createPair} className="btn-accent btn-sm">
-            <Plus className="h-4 w-4" /> Buat pasangan
+            <Plus className="h-4 w-4" /> Build
           </button>
         </div>
         {err && <div className="mt-3"><Banner kind="error" onClose={() => setErr('')}>{err}</Banner></div>}
@@ -184,7 +183,7 @@ function ManagementView({ models, preps, pairs, setPairs, onToast }) {
 
       {/* Daftar pasangan */}
       <div className="mt-6">
-        <p className="mb-3 text-sm font-bold text-navy">Pasangan Tersedia</p>
+        <p className="mb-3 text-sm font-bold text-navy">List Machine Learning Pipeline</p>
         <div className="space-y-3">
           {pairs.length === 0 && (
             <div className="card p-8 text-center text-sm text-steel">Belum ada pasangan. Buat dari artifact di atas.</div>
@@ -258,8 +257,7 @@ function MonitoringView({ testing }) {
 
   return (
     <div className="animate-fade-in">
-      <SectionTitle eyebrow="Sidebar · Monitoring Model" title="Monitoring Model Deployment"
-        desc="Pantau rata-rata skor prediksi seluruh testing dan riwayat hasil prediksi pada Credit Analysis Sistem." />
+      <SectionTitle title="Monitoring Model Deployment"/>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard icon={Activity} label="Rata-rata Prediction Score" value={data.avg_score.toFixed(4)} accent="royal" hint={`dari ${data.total} testing`} />
