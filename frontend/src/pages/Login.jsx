@@ -60,33 +60,17 @@ export default function Login() {
           <Logo tone="light" className="h-11" />
 
           <div className="max-w-md">
-            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold tracking-wide text-teal-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-teal" /> CREDIT RISK INTELLIGENCE
-            </p>
             <h1 className="font-display text-4xl font-semibold leading-tight text-white xl:text-5xl">
-              Prediksi gagal bayar dengan presisi.
+              Prediksi gagal bayar di genggaman anda.
             </h1>
             <p className="mt-5 text-[15px] leading-relaxed text-white/70">
-              Platform analisis risiko kredit end-to-end — dari preprocessing &amp; modeling oleh tim
-              Data Scientist, hingga keputusan kredit real-time oleh tim Credit Analysis.
+              Platform analisis risiko kredit berbasis machine learning untuk memprediksi probabilitas gagal bayar peminjam individu maupun korporasi.
             </p>
 
-            <div className="mt-8 grid grid-cols-3 gap-3">
-              {[
-                ['ROC AUC', 'Evaluasi'],
-                ['FastAPI', 'Inference'],
-                ['PostgreSQL', 'Audit trail'],
-              ].map(([a, b]) => (
-                <div key={a} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="font-display text-lg font-semibold text-white">{a}</p>
-                  <p className="text-xs text-white/55">{b}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
           <p className="text-xs text-white/40">
-            © {new Date().getFullYear()} RiskFinder Team · Seluruh akses tercatat &amp; terenkripsi (JWT)
+            © {new Date().getFullYear()} RiskFinder Team·
           </p>
         </div>
       </aside>
