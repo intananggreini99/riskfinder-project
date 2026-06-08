@@ -51,9 +51,6 @@ export default function Monitoring() {
 
   return (
     <AppShell>
-      <Link to="/app/menu" className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-steel hover:text-navy">
-        <ArrowLeft className="h-4 w-4" /> Main Menu
-      </Link>
 
       <div className="grid gap-6 lg:grid-cols-[230px_1fr]">
         {/* Sidebar */}

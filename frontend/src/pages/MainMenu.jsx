@@ -54,39 +54,11 @@ export default function MainMenu() {
             </div>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-2xl font-semibold text-navy">{c.title}</h2>
-              <ArrowRight className="h-5 w-5 text-navy-300 transition-all group-hover:translate-x-1 group-hover:text-royal" />
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-steel">{c.desc}</p>
-            <ul className="mt-5 space-y-2">
-              {c.points.map((p) => (
-                <li key={p} className="flex items-center gap-2.5 text-sm text-navy-600">
-                  <span className="h-1.5 w-1.5 rounded-full bg-teal" />
-                  {p}
-                </li>
-              ))}
-            </ul>
           </Link>
         ))}
       </div>
-
-      {/* Strip arsitektur */}
-      <div className="mt-8 grid animate-fade-up gap-4 rounded-2xl border border-line bg-white p-6 sm:grid-cols-3">
-        {[
-          { icon: Database, t: 'DVC + Google Drive', d: 'defaultCreditCardClients.xls' },
-          { icon: GitBranch, t: 'MLflow Tracking', d: 'Eksperimen & registry' },
-          { icon: Boxes, t: 'Docker Volume', d: 'preprocessing.pkl · model.pkl' },
-        ].map((x) => (
-          <div key={x.t} className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-navy-50 text-navy">
-              <x.icon className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-navy">{x.t}</p>
-              <p className="text-xs text-steel">{x.d}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      
     </AppShell>
   )
 }
