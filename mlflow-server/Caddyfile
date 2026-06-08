@@ -1,0 +1,22 @@
+# mlflow-server/Caddyfile
+# ===========================================================================
+# Reverse proxy + Basic Auth di depan MLflow (Bab 6 panduan).
+# Dipakai oleh service "Caddy" terpisah (lihat Caddy.Dockerfile).
+#
+# - Caddy mendapat $PORT dari Railway dan mendengarkan di situ.
+# - Hanya Caddy yang punya DOMAIN PUBLIK; MLflow tetap privat.
+# - Caddy meneruskan trafik ke MLflow lewat jaringan privat Railway.
+#
+# PENTING: target port harus = port asli yang DIDENGARKAN service MLflow di
+# jaringan privat. Pada Topologi 2 (lihat INTEGRATION), set variabel PORT=5000
+# pada service MLflow agar pasti cocok dengan :5000 di bawah.
+#
+# Catatan versi: Caddy v2 terbaru memakai direktif `basic_auth` (versi lama
+# memakai `basicauth`). Image caddy:2-alpine sudah memakai `basic_auth`.
+# ===========================================================================
+:{$PORT} {
+	basic_auth {
+		{$AUTH_USER} {$AUTH_PASSWORD_HASH}
+	}
+	reverse_proxy mlflow.railway.internal:5000
+}

@@ -1,0 +1,10 @@
+# mlflow-server/.gitignore
+.env
+.env.local
+__pycache__/
+*.pyc
+*.pyo
+# Artifact/metadata lokal bila sempat menjalankan MLflow di mesin sendiri
+mlruns/
+mlartifacts/
+.DS_Store
