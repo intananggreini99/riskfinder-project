@@ -13,6 +13,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+from pycaret.classification import predict_model
 
 from ..config import settings
 
@@ -64,7 +65,7 @@ def _load_model(model_path: str):
             from pycaret.classification import load_model
 
             return load_model(os.path.splitext(model_path)[0], verbose=False)
-        except Exception as pycaret_error:  # noqa: BLE001
+        except Exception as pycaret_error:
             raise RuntimeError(
                 "Model tidak dapat dimuat. Pastikan dependency PyCaret/scikit-learn "
                 f"sesuai artifact notebook. joblib={joblib_error}; pycaret={pycaret_error}"
@@ -105,7 +106,11 @@ def create_features(df_in: pd.DataFrame) -> pd.DataFrame:
     delay_cols = [f"PAY_{i}" for i in range(1, 7)]
 
     df["AVG_UTIL_RATIO"] = df[bill_cols].div(df["LIMIT_BAL"] + 1, axis=0).mean(axis=1)
+    df["TOTAL_PAY_AMT"] = df[payamt_cols].sum(axis=1)
     df["AVG_PAY_AMT"] = df[payamt_cols].mean(axis=1)
+    df["TOTAL_BILL_AMT"] = df[bill_cols].sum(axis=1)
+    df["AVG_BILL_AMT"] = df[bill_cols].mean(axis=1)
+    df["PAY_TO_BILL_RATIO"] = df["TOTAL_PAY_AMT"] / (df["TOTAL_BILL_AMT"] + 1)
     df["N_LATE_PAYMENTS"] = (df[delay_cols] > 0).sum(axis=1)
     df["MAX_DELAY"] = df[delay_cols].max(axis=1)
     df["BILL_TREND"] = df["BILL_AMT1"] - df["BILL_AMT6"]
@@ -117,11 +122,9 @@ def preprocess_for_inference(df_raw: pd.DataFrame, artifacts: dict) -> pd.DataFr
     """Transformasi data mentah agar identik dengan preprocessing notebook."""
     df = df_raw.copy()
 
-    # 1) PAY_0 -> PAY_1.
     if "PAY_0" in df.columns:
         df = df.rename(columns={"PAY_0": "PAY_1"})
 
-    # 2) Inkonsistensi EDUCATION/MARRIAGE -> NaN lalu KNN imputation.
     df["EDUCATION"] = df["EDUCATION"].apply(lambda x: np.nan if x in [0, 5, 6] else x)
     df["MARRIAGE"] = df["MARRIAGE"].apply(lambda x: np.nan if x == 0 else x)
 
@@ -139,33 +142,27 @@ def preprocess_for_inference(df_raw: pd.DataFrame, artifacts: dict) -> pd.DataFr
     df["EDUCATION"] = df["EDUCATION"].fillna(artifacts["fallback_education"]).astype(int)
     df["MARRIAGE"] = df["MARRIAGE"].fillna(artifacts["fallback_marriage"]).astype(int)
 
-    # 3) Outlier capping memakai batas TRAIN.
     for col, (lower, upper) in artifacts["outlier_boundaries"].items():
         if col in df.columns:
             df[col] = np.clip(df[col], lower, upper)
 
-    # 4) Feature engineering.
     df = create_features(df)
 
-    # 5) OHE MARRIAGE.
     df = pd.get_dummies(df, columns=["MARRIAGE"])
     for col in artifacts["marriage_ohe_columns"]:
         if col not in df.columns:
             df[col] = 0
 
-    # 6) Label encode SEX.
     df["SEX"] = df["SEX"].map(artifacts["sex_mapping"])
     if df["SEX"].isna().any():
         raise ValueError("Nilai SEX tidak valid. Gunakan kode 1 atau 2 sesuai dataset training.")
     df["SEX"] = df["SEX"].astype(int)
 
-    # 7) Susun kolom final sesuai urutan training.
     missing = [c for c in artifacts["final_columns"] if c not in df.columns]
     if missing:
         raise ValueError(f"Kolom hilang setelah preprocessing: {missing}")
     df = df[artifacts["final_columns"]]
 
-    # 8) Scaling kolom kontinu.
     df[artifacts["columns_to_stdscaler"]] = artifacts["scaler"].transform(
         df[artifacts["columns_to_stdscaler"]]
     )
@@ -173,27 +170,25 @@ def preprocess_for_inference(df_raw: pd.DataFrame, artifacts: dict) -> pd.DataFr
 
 
 def _predict_label_score(model, X: pd.DataFrame) -> tuple[int, float]:
-    """Prediksi label dan prediction_score dari estimator sklearn atau PyCaret."""
-    if hasattr(model, "predict_proba"):
-        proba = model.predict_proba(X)
-        if proba.ndim == 2 and proba.shape[1] > 1:
-            classes = list(getattr(model, "classes_", [0, 1]))
-            default_idx = classes.index(1) if 1 in classes else 1
-            p_default = float(proba[:, default_idx][0])
-            label = int(p_default >= 0.5)
-            score = p_default if label == 1 else 1 - p_default
-            return label, score
+    """Prediksi label dan score memakai PyCaret, sama seperti app_fastapi1.py.
 
-    if hasattr(model, "predict"):
-        label = int(model.predict(X)[0])
-        return label, float(label)
-
-    from pycaret.classification import predict_model
-
+    PyCaret mengembalikan kolom `prediction_label` dan `prediction_score`.
+    Fungsi ini sengaja tidak menghitung probability secara manual agar nilai
+    `prediction_score` identik dengan output `predict_model()`.
+    """
     pred = predict_model(model, data=X, verbose=False)
-    label_col = "prediction_label" if "prediction_label" in pred.columns else "Label"
-    score_col = "prediction_score" if "prediction_score" in pred.columns else "Score"
-    return int(pred[label_col].iloc[0]), float(pred[score_col].iloc[0])
+
+    required_columns = {"prediction_label", "prediction_score"}
+    missing_columns = required_columns.difference(pred.columns)
+    if missing_columns:
+        raise ValueError(
+            "Output PyCaret predict_model tidak memiliki kolom wajib: "
+            f"{sorted(missing_columns)}. Kolom tersedia: {list(pred.columns)}"
+        )
+
+    label = int(pred["prediction_label"].values[0])
+    score = float(pred["prediction_score"].values[0])
+    return label, score
 
 
 def predict_one(raw: dict) -> dict:
