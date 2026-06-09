@@ -57,20 +57,31 @@ Backend: ds-service `http://localhost:8081/docs`, ca-service `http://localhost:8
 
 Langkah lengkap step-by-step ada di **`docs/RiskFinder-Panduan.docx`**.
 
-## Pipeline ML — Build Model via MLflow Projects
+## Pipeline ML — Build Model via MLflow Lokal
 
-Menu **Build Model** membuka **workbench MLflow Projects** (`frontend ServiceMLFlow`),
-bukan pipeline otomatis. Data Scientist memilih entry point + parameter, lalu menekan
-**Run** → backend menjalankan `mlflow run services/ds-service/mlproject -e main
---env-manager local -P ...`. Entry point (`mlproject/train_pipeline.py`) memanggil
-`app/ml/pipeline.py` yang mereplikasi `Preprocessing_Modeling_EndToEnd.ipynb` (Step 1–17):
-drop ID & rename target, drop duplicates, tandai inkonsistensi → imputasi modus per-kelas,
-IQR capping, feature extraction, encoding (OHE/label), binning AGE, feature selection
-(korelasi + ANOVA), StandardScaler, lalu compare/tune/evaluasi model. Hasilnya disimpan
-**otomatis** sebagai `preprocessing_artifacts_Vx.pkl` + `best_credit_model_Vx.pkl` ke
-Docker Volume + DVC, dengan set train/test ke DVC dan katalog ke PostgreSQL — versi
-(V1, V2, …) di-increment otomatis. Inference (`ca-service`) mereplikasi transformasi
-yang sama persis sebelum memprediksi.
+Menu **Build Model** pada Main Menu Data Scientist langsung mengecek dan mengalihkan browser ke
+`http://localhost:5000` (atau nilai `VITE_MLFLOW_UI_URL`). Jika URL tidak dapat dijangkau,
+frontend menampilkan pemberitahuan bahwa container MLflow lokal belum running. Jalankan:
 
-Web UI MLflow Tracking dapat dibuka dari tab **MLflow Tracking UI** pada halaman tsb.
-(set `VITE_MLFLOW_UI_URL` di frontend & `MLFLOW_UI_URL` di ds-service).
+```bash
+docker compose up -d mlflow
+```
+
+Artifact default `best_credit_model_V1.pkl` dan `preprocessing_artifacts_V1.pkl` diambil dari
+`Preprocessing_Modeling_EndToEnd_.ipynb` dan dibake ke image `ds-service` serta `ca-service`.
+Agar Docker Volume lokal yang kosong tetap langsung berisi artifact V1, Dockerfile juga
+menyediakan `/seed-artifacts` dan menyalinnya ke `/artifacts` saat container start.
+
+Inference (`ca-service`) mereplikasi transformasi notebook: PAY_0→PAY_1, KNN imputation
+untuk EDUCATION/MARRIAGE, IQR capping, feature engineering, OHE MARRIAGE, label encode SEX,
+urutan `final_columns`, dan scaling memakai artifact preprocessing.
+
+Evaluasi model pada halaman **ModelEvaluation.jsx** tidak memakai konstanta demo lagi; data
+learning curve, confusion matrix, classification report, ROC AUC, dan gap dibaca dari tabel
+`ds.model_evaluation` di PostgreSQL/Neon. Untuk database yang sudah terdeploy, jalankan:
+
+```sql
+-- Neon SQL Editor
+-- Jalankan seluruh isi file ini
+db/init/04_model_evaluation_seed.sql
+```

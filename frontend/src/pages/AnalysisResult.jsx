@@ -45,21 +45,12 @@ export default function AnalysisResult() {
       </Link>
 
       <SectionTitle eyebrow="Credit Analysis" title="Hasil Analysis"
-        desc="Hasil prediksi gagal bayar (default) untuk tiap peminjam. Seluruh hasil telah dicatat ke PostgreSQL (skema snowflake)."
         right={
           <button onClick={() => navigate('/app/entry')} className="btn-ghost btn-sm">
             <RotateCcw className="h-4 w-4" /> Analisis lagi
           </button>
         } />
 
-      {isDemo && (
-        <div className="mb-5">
-          <Banner kind="info">
-            Mode demo: backend prediksi belum terjangkau, hasil dihitung dengan estimasi heuristik lokal.
-            Setelah container Credit Analysis aktif, prediksi memakai <b>model_final.pkl</b> sungguhan.
-          </Banner>
-        </div>
-      )}
 
       {/* Ringkasan */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -127,10 +118,7 @@ function ResultCard({ index, r }) {
             {index}
           </span>
           <div>
-            <p className="font-display text-lg font-semibold text-navy">Peminjam #{index}</p>
-            <p className="text-xs text-steel">
-              Plafon {fmt(r.input.LIMIT_BAL)} · Usia {r.input.AGE} · {r.input.SEX === 1 ? 'Laki-laki' : 'Perempuan'}
-            </p>
+            <p className="font-display text-lg font-semibold text-navy">Peminjam {index}</p>
           </div>
         </div>
         <RiskBadge label={r.prediction_label} />

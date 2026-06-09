@@ -1,11 +1,14 @@
-"""Inference Credit Analysis — replikasi persis preprocess_for_inference (Step 18 notebook).
+"""Inference Credit Analysis — kompatibel dengan artifact notebook
+`Preprocessing_Modeling_EndToEnd_.ipynb`.
 
-Memuat pasangan model+preprocessing aktif dari Docker Volume (ditunjuk active_pair.json,
-ditulis oleh ds-service saat deploy). Bila tidak ada pointer, memakai file default.
+Model aktif dibaca dari Docker Volume `/artifacts`. Bila `active_pair.json` belum
+ada, service memakai `best_credit_model_V1.pkl` dan
+`preprocessing_artifacts_V1.pkl` sebagai fallback default.
 """
 import json
 import os
 import threading
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -14,7 +17,28 @@ import pandas as pd
 from ..config import settings
 
 _lock = threading.Lock()
-_cache = {"model": None, "artifacts": None, "model_file": None}
+_cache = {"model": None, "artifacts": None, "model_file": None, "prep_file": None}
+
+
+def _seed_default_artifacts_if_needed() -> None:
+    """Salin artifact bawaan image ke Docker Volume kosong saat lokal/docker-compose.
+
+    Mount Docker Volume pada `/artifacts` akan menimpa file yang dibake ke image.
+    Karena itu Dockerfile juga menaruh salinan pada `/seed-artifacts`; fungsi ini
+    melakukan copy satu kali bila volume belum berisi V1.
+    """
+    seed_root = Path("/seed-artifacts")
+    if not seed_root.exists():
+        return
+    for rel in (
+        f"models/{settings.DEFAULT_MODEL_FILE}",
+        f"preprocessing/{settings.DEFAULT_PREP_FILE}",
+    ):
+        src = seed_root / rel
+        dst = Path(settings.ARTIFACT_DIR) / rel
+        if src.exists() and not dst.exists():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_bytes(src.read_bytes())
 
 
 def _resolve_active_files():
@@ -22,7 +46,7 @@ def _resolve_active_files():
     model_file, prep_file = settings.DEFAULT_MODEL_FILE, settings.DEFAULT_PREP_FILE
     if os.path.exists(settings.ACTIVE_POINTER):
         try:
-            with open(settings.ACTIVE_POINTER) as f:
+            with open(settings.ACTIVE_POINTER, encoding="utf-8") as f:
                 ptr = json.load(f)
             model_file = ptr.get("model_file") or model_file
             prep_file = ptr.get("preprocessing_file") or prep_file
@@ -31,11 +55,33 @@ def _resolve_active_files():
     return model_file, prep_file
 
 
+def _load_model(model_path: str):
+    """Load model joblib/PyCaret dari path .pkl."""
+    try:
+        return joblib.load(model_path)
+    except Exception as joblib_error:
+        try:
+            from pycaret.classification import load_model
+
+            return load_model(os.path.splitext(model_path)[0], verbose=False)
+        except Exception as pycaret_error:  # noqa: BLE001
+            raise RuntimeError(
+                "Model tidak dapat dimuat. Pastikan dependency PyCaret/scikit-learn "
+                f"sesuai artifact notebook. joblib={joblib_error}; pycaret={pycaret_error}"
+            ) from pycaret_error
+
+
 def load_active(force: bool = False):
-    """Muat (atau muat ulang) model & artifacts aktif, dengan caching."""
+    """Muat (atau muat ulang) model & preprocessing aktif, dengan caching."""
     with _lock:
+        _seed_default_artifacts_if_needed()
         model_file, prep_file = _resolve_active_files()
-        if not force and _cache["model"] is not None and _cache["model_file"] == model_file:
+        if (
+            not force
+            and _cache["model"] is not None
+            and _cache["model_file"] == model_file
+            and _cache["prep_file"] == prep_file
+        ):
             return _cache["model"], _cache["artifacts"], model_file
 
         model_path = os.path.join(settings.MODEL_DIR, model_file)
@@ -45,92 +91,119 @@ def load_active(force: bool = False):
                 f"Artifact aktif belum tersedia di Docker Volume "
                 f"({model_path} / {prep_path}). Pastikan Data Scientist sudah build & deploy model."
             )
-        model = joblib.load(model_path)
+        model = _load_model(model_path)
         artifacts = joblib.load(prep_path)
-        _cache.update({"model": model, "artifacts": artifacts, "model_file": model_file})
+        _cache.update({"model": model, "artifacts": artifacts, "model_file": model_file, "prep_file": prep_file})
         return model, artifacts, model_file
 
 
 def create_features(df_in: pd.DataFrame) -> pd.DataFrame:
-    """Identik dengan feature extraction training (Step 7)."""
+    """Feature extraction Step 7 notebook."""
     df = df_in.copy()
-    bill = [f"BILL_AMT{i}" for i in range(1, 7)]
-    payamt = [f"PAY_AMT{i}" for i in range(1, 7)]
-    delay = [f"PAY_{i}" for i in range(1, 7)]
-    df["AVG_UTIL_RATIO"] = df[bill].div(df["LIMIT_BAL"] + 1, axis=0).mean(axis=1)
-    df["AVG_PAY_AMT"] = df[payamt].mean(axis=1)
-    df["N_LATE_PAYMENTS"] = (df[delay] > 0).sum(axis=1)
-    df["MAX_DELAY"] = df[delay].max(axis=1)
+    bill_cols = [f"BILL_AMT{i}" for i in range(1, 7)]
+    payamt_cols = [f"PAY_AMT{i}" for i in range(1, 7)]
+    delay_cols = [f"PAY_{i}" for i in range(1, 7)]
+
+    df["AVG_UTIL_RATIO"] = df[bill_cols].div(df["LIMIT_BAL"] + 1, axis=0).mean(axis=1)
+    df["AVG_PAY_AMT"] = df[payamt_cols].mean(axis=1)
+    df["N_LATE_PAYMENTS"] = (df[delay_cols] > 0).sum(axis=1)
+    df["MAX_DELAY"] = df[delay_cols].max(axis=1)
     df["BILL_TREND"] = df["BILL_AMT1"] - df["BILL_AMT6"]
-    df["PAY_AMT_STD"] = df[payamt].std(axis=1).fillna(0)
+    df["PAY_AMT_STD"] = df[payamt_cols].std(axis=1).fillna(0)
     return df
 
 
 def preprocess_for_inference(df_raw: pd.DataFrame, artifacts: dict) -> pd.DataFrame:
-    """Transformasi data mentah agar identik dengan pipeline training."""
+    """Transformasi data mentah agar identik dengan preprocessing notebook."""
     df = df_raw.copy()
 
-    # 1) PAY_0 -> PAY_1
+    # 1) PAY_0 -> PAY_1.
     if "PAY_0" in df.columns:
         df = df.rename(columns={"PAY_0": "PAY_1"})
 
-    # 2) inkonsistensi EDUCATION/MARRIAGE -> fallback
-    df["EDUCATION"] = df["EDUCATION"].apply(
-        lambda x: artifacts["fallback_education"] if x in [0, 5, 6] else x
-    ).astype(int)
-    df["MARRIAGE"] = df["MARRIAGE"].apply(
-        lambda x: artifacts["fallback_marriage"] if x == 0 else x
-    ).astype(int)
+    # 2) Inkonsistensi EDUCATION/MARRIAGE -> NaN lalu KNN imputation.
+    df["EDUCATION"] = df["EDUCATION"].apply(lambda x: np.nan if x in [0, 5, 6] else x)
+    df["MARRIAGE"] = df["MARRIAGE"].apply(lambda x: np.nan if x == 0 else x)
 
-    # 3) outlier capping (batas dari TRAIN)
+    if all(k in artifacts for k in ("knn_feature_columns", "scaler_knn", "knn_imputer", "knn_valid_ranges")):
+        knn_cols = artifacts["knn_feature_columns"]
+        df_knn = df.reindex(columns=knn_cols)
+        scaled = artifacts["scaler_knn"].transform(df_knn)
+        imputed = artifacts["knn_imputer"].transform(scaled)
+        inv = pd.DataFrame(
+            artifacts["scaler_knn"].inverse_transform(imputed), columns=knn_cols, index=df.index
+        )
+        for col, (lo, hi) in artifacts["knn_valid_ranges"].items():
+            df[col] = inv[col].round().clip(lo, hi)
+
+    df["EDUCATION"] = df["EDUCATION"].fillna(artifacts["fallback_education"]).astype(int)
+    df["MARRIAGE"] = df["MARRIAGE"].fillna(artifacts["fallback_marriage"]).astype(int)
+
+    # 3) Outlier capping memakai batas TRAIN.
     for col, (lower, upper) in artifacts["outlier_boundaries"].items():
         if col in df.columns:
             df[col] = np.clip(df[col], lower, upper)
 
-    # 4) feature extraction (sama dengan training)
+    # 4) Feature engineering.
     df = create_features(df)
 
-    # 5) AGE binning -> ordinal
-    df["AGE_GROUP"] = (
-        pd.cut(df["AGE"], bins=artifacts["age_bins"], labels=artifacts["age_labels"], right=False)
-        .map(artifacts["age_group_mapping"])
-        .astype(int)
-    )
-
-    # 6) OHE MARRIAGE
+    # 5) OHE MARRIAGE.
     df = pd.get_dummies(df, columns=["MARRIAGE"])
     for col in artifacts["marriage_ohe_columns"]:
         if col not in df.columns:
             df[col] = 0
 
-    # 7) label encode SEX
-    df["SEX"] = df["SEX"].map(artifacts["sex_mapping"]).astype(int)
+    # 6) Label encode SEX.
+    df["SEX"] = df["SEX"].map(artifacts["sex_mapping"])
+    if df["SEX"].isna().any():
+        raise ValueError("Nilai SEX tidak valid. Gunakan kode 1 atau 2 sesuai dataset training.")
+    df["SEX"] = df["SEX"].astype(int)
 
-    # 8) susun kolom final sesuai urutan training (kolom hilang -> 0)
-    for col in artifacts["final_columns"]:
-        if col not in df.columns:
-            df[col] = 0
+    # 7) Susun kolom final sesuai urutan training.
+    missing = [c for c in artifacts["final_columns"] if c not in df.columns]
+    if missing:
+        raise ValueError(f"Kolom hilang setelah preprocessing: {missing}")
     df = df[artifacts["final_columns"]]
 
-    # 9) scaling kolom kontinu
+    # 8) Scaling kolom kontinu.
     df[artifacts["columns_to_stdscaler"]] = artifacts["scaler"].transform(
         df[artifacts["columns_to_stdscaler"]]
     )
     return df
 
 
+def _predict_label_score(model, X: pd.DataFrame) -> tuple[int, float]:
+    """Prediksi label dan prediction_score dari estimator sklearn atau PyCaret."""
+    if hasattr(model, "predict_proba"):
+        proba = model.predict_proba(X)
+        if proba.ndim == 2 and proba.shape[1] > 1:
+            classes = list(getattr(model, "classes_", [0, 1]))
+            default_idx = classes.index(1) if 1 in classes else 1
+            p_default = float(proba[:, default_idx][0])
+            label = int(p_default >= 0.5)
+            score = p_default if label == 1 else 1 - p_default
+            return label, score
+
+    if hasattr(model, "predict"):
+        label = int(model.predict(X)[0])
+        return label, float(label)
+
+    from pycaret.classification import predict_model
+
+    pred = predict_model(model, data=X, verbose=False)
+    label_col = "prediction_label" if "prediction_label" in pred.columns else "Label"
+    score_col = "prediction_score" if "prediction_score" in pred.columns else "Score"
+    return int(pred[label_col].iloc[0]), float(pred[score_col].iloc[0])
+
+
 def predict_one(raw: dict) -> dict:
     """Prediksi satu peminjam. Return label, score, status."""
     model, artifacts, model_file = load_active()
     X = preprocess_for_inference(pd.DataFrame([raw]), artifacts)
-
-    proba = float(model.predict_proba(X)[:, 1][0])
-    label = int(proba >= 0.5)
-    # prediction_score = probabilitas kelas terprediksi (selaras PyCaret)
-    score = proba if label == 1 else 1 - proba
+    label, score = _predict_label_score(model, X)
     return {
-        "prediction_label": label,
+        "prediction_label": int(label),
         "prediction_score": round(float(score), 4),
-        "status": "Default" if label == 1 else "Non-Default",
+        "status": "Default" if int(label) == 1 else "Non-Default",
         "_model_file": model_file,
     }

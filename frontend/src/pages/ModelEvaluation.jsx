@@ -5,50 +5,43 @@ import {
 } from 'recharts'
 import { ArrowLeft, GitCompare, Grid3x3, FileText, Gauge, Layers } from 'lucide-react'
 import AppShell from '../components/AppShell.jsx'
-import { SectionTitle, StatCard } from '../components/ui.jsx'
-import { dsApi } from '../lib/api.js'
-import { DEMO_PAIRS } from '../lib/monitoringDemo.js'
-
-// Learning curve contoh (ROC AUC train vs test pada ukuran data bertambah)
-const DEMO_EVAL = {
-  pair_name: 'Model_V1 + preprocessing_V1',
-  learning_curve: [
-    { size: '20%', train: 0.872, test: 0.741 },
-    { size: '36%', train: 0.851, test: 0.758 },
-    { size: '52%', train: 0.836, test: 0.769 },
-    { size: '68%', train: 0.824, test: 0.776 },
-    { size: '84%', train: 0.817, test: 0.781 },
-    { size: '100%', train: 0.812, test: 0.784 },
-  ],
-  confusion_matrix: { tn: 6612, fp: 397, fn: 1213, tp: 768 },
-  classification_report: [
-    { label: '0 · Non-Default', precision: 0.845, recall: 0.943, f1: 0.891, support: 7009 },
-    { label: '1 · Default', precision: 0.659, recall: 0.388, f1: 0.488, support: 1981 },
-  ],
-  roc_auc_train: 0.8123,
-  roc_auc_test: 0.7841,
-  gap: 0.0282,
-}
+import { SectionTitle, StatCard, Banner } from '../components/ui.jsx'
+import { dsApi, errMessage } from '../lib/api.js'
 
 export default function ModelEvaluation() {
   const { pairId } = useParams()
   const [data, setData] = useState(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     let cancel = false
     async function load() {
       try {
+        setError('')
         const { data } = await dsApi.get(`/monitoring/pairs/${pairId}/evaluation`)
         if (!cancel) setData(data)
-      } catch {
+      } catch (e) {
         if (cancel) return
-        const pair = DEMO_PAIRS.find((p) => p.id === pairId)
-        setData({ ...DEMO_EVAL, pair_name: pair?.name || DEMO_EVAL.pair_name })
+        setError(errMessage(e, 'Data evaluasi model belum tersedia di PostgreSQL.'))
+        setData(null)
       }
     }
     load()
     return () => { cancel = true }
   }, [pairId])
+
+  if (error) {
+    return (
+      <AppShell>
+        <Link to="/app/monitoring" className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-steel hover:text-navy">
+          <ArrowLeft className="h-4 w-4" /> Management Model
+        </Link>
+        <Banner kind="error">
+          <b>Evaluasi tidak dapat dimuat.</b> {error}
+        </Banner>
+      </AppShell>
+    )
+  }
 
   if (!data) {
     return <AppShell><div className="card h-96 animate-pulse" /></AppShell>

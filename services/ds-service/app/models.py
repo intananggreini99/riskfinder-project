@@ -74,6 +74,29 @@ class ModelPair(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+
+
+class ModelEvaluation(Base):
+    """Detail evaluasi model untuk halaman ModelEvaluation.jsx.
+
+    Disimpan di PostgreSQL/Neon agar frontend tidak memakai konstanta demo.
+    """
+    __tablename__ = "model_evaluation"
+    __table_args__ = {"schema": "ds"}
+
+    evaluation_id = Column(String(64), primary_key=True)
+    run_id = Column(String(64), ForeignKey("ds.training_run.run_id"))
+    model_id = Column(String(64), ForeignKey("ds.model_artifact.model_id"), nullable=False)
+    pair_id = Column(String(64), ForeignKey("ds.model_pair.pair_id"))
+    learning_curve = Column(JSONB, nullable=False)
+    confusion_matrix = Column(JSONB, nullable=False)
+    classification_report = Column(JSONB, nullable=False)
+    roc_auc_train = Column(Numeric(6, 4))
+    roc_auc_test = Column(Numeric(6, 4))
+    gap_train_test = Column(Numeric(6, 4))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class DatasetSplit(Base):
     __tablename__ = "dataset_split"
     __table_args__ = {"schema": "ds"}

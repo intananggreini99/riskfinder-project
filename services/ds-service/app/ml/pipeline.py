@@ -146,7 +146,7 @@ def run_build(cfg: dict, db=None, log=None) -> dict:
     if db is not None:
         log("[6/7] meregistrasi katalog model & preprocessing → PostgreSQL ...")
         _persist_catalog(db, run_id, mlflow_run_id, test_size, random_state, n_trials,
-                         version, artifacts, art, metrics, splits, log)
+                         version, artifacts, art, metrics, evaluation, splits, log)
 
     log("[7/7] selesai. Artifact siap dipasangkan di halaman Monitoring Model.")
 
@@ -171,7 +171,7 @@ def run_build(cfg: dict, db=None, log=None) -> dict:
 
 
 def _persist_catalog(db, run_id, mlflow_run_id, test_size, random_state, n_trials,
-                     version, artifacts, art, metrics, splits, log=_noop):
+                     version, artifacts, art, metrics, evaluation, splits, log=_noop):
     """Tulis baris katalog (run, model, preprocessing, split) ke skema ds. Aman bila gagal."""
     from .. import models
     try:
@@ -191,6 +191,15 @@ def _persist_catalog(db, run_id, mlflow_run_id, test_size, random_state, n_trial
         db.add(models.ModelArtifact(
             model_id=f"model_{version}", filename=art["model"], run_id=run_id,
             algorithm=metrics["algorithm"], roc_auc=metrics["roc_auc_test"],
+        ))
+        db.add(models.ModelEvaluation(
+            evaluation_id=f"evaluation_{version}", run_id=run_id, model_id=f"model_{version}",
+            learning_curve=evaluation.get("learning_curve", []),
+            confusion_matrix=evaluation.get("confusion_matrix", {}),
+            classification_report=evaluation.get("classification_report", []),
+            roc_auc_train=evaluation.get("roc_auc_train", metrics.get("roc_auc_train")),
+            roc_auc_test=evaluation.get("roc_auc_test", metrics.get("roc_auc_test")),
+            gap_train_test=evaluation.get("gap", metrics.get("gap")),
         ))
         for s in splits:
             db.add(models.DatasetSplit(

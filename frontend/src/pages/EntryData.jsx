@@ -192,10 +192,6 @@ export default function EntryData() {
             )}
           </div>
 
-          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-royal/15 bg-royal/5 p-3.5 text-xs text-royal">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>Setiap entry diproses sebagai satu baris data testing: preprocessing identik training → prediksi model aktif → disimpan ke PostgreSQL.</p>
-          </div>
         </aside>
       </div>
     </AppShell>

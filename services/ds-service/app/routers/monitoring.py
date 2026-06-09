@@ -114,30 +114,42 @@ def deploy_pair(pair_id: str, db: Session = Depends(get_db), user=Depends(get_cu
 # ---------------- Management: evaluasi pasangan ----------------
 @router.get("/pairs/{pair_id}/evaluation", response_model=EvaluationOut)
 def pair_evaluation(pair_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Ambil evaluasi model dari PostgreSQL/Neon.
+
+    Frontend tidak lagi memakai konstanta DEMO_EVAL; learning curve, confusion
+    matrix, classification report, ROC AUC, dan gap wajib berasal dari tabel
+    ds.model_evaluation.
+    """
     pair = db.get(models.ModelPair, pair_id)
     if not pair:
         raise HTTPException(status_code=404, detail="Pasangan tidak ditemukan.")
 
-    version = pair.model_id.replace("model_", "")
-    cached = store.load_evaluation(version)
-    if cached:
-        cached["pair_name"] = pair.name
-        return EvaluationOut(**cached)
+    evaluation = db.execute(
+        select(models.ModelEvaluation)
+        .where(
+            (models.ModelEvaluation.pair_id == pair.pair_id)
+            | (models.ModelEvaluation.model_id == pair.model_id)
+        )
+        .order_by(desc(models.ModelEvaluation.created_at))
+    ).scalars().first()
 
-    # fallback: bentuk evaluasi ringkas dari metrik tersimpan
-    auc_te = float(pair.roc_auc_test or 0.78)
-    auc_tr = float(pair.roc_auc_train or auc_te + 0.03)
+    if not evaluation:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Data evaluasi model belum tersedia di PostgreSQL. "
+                "Jalankan migrasi db/init/04_model_evaluation_seed.sql atau build ulang model."
+            ),
+        )
+
     return EvaluationOut(
         pair_name=pair.name,
-        learning_curve=[{"size": f"{p}%", "train": round(auc_tr + (1 - p / 100) * 0.06, 4),
-                         "test": round(auc_te - (1 - p / 100) * 0.04, 4)} for p in [20, 36, 52, 68, 84, 100]],
-        confusion_matrix={"tn": 6612, "fp": 397, "fn": 1213, "tp": 768},
-        classification_report=[
-            {"label": "0 · Non-Default", "precision": 0.845, "recall": 0.943, "f1": 0.891, "support": 7009},
-            {"label": "1 · Default", "precision": 0.659, "recall": 0.388, "f1": 0.488, "support": 1981},
-        ],
-        roc_auc_train=round(auc_tr, 4), roc_auc_test=round(auc_te, 4),
-        gap=round(abs(auc_tr - auc_te), 4),
+        learning_curve=evaluation.learning_curve or [],
+        confusion_matrix=evaluation.confusion_matrix or {},
+        classification_report=evaluation.classification_report or [],
+        roc_auc_train=float(evaluation.roc_auc_train or 0),
+        roc_auc_test=float(evaluation.roc_auc_test or 0),
+        gap=float(evaluation.gap_train_test or 0),
     )
 
 
