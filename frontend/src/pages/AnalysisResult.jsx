@@ -55,8 +55,8 @@ export default function AnalysisResult() {
       {/* Ringkasan */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={Users} label="Total Peminjam" value={stats.total} accent="navy" />
-        <StatCard icon={AlertTriangle} label="Diprediksi Default" value={stats.defaults} accent="risk" hint="label = 1" />
-        <StatCard icon={CheckCircle2} label="Diprediksi Lancar" value={stats.nonDefaults} accent="teal" hint="label = 0" />
+        <StatCard icon={AlertTriangle} label="Diprediksi Default" value={stats.defaults} accent="risk" />
+        <StatCard icon={CheckCircle2} label="Diprediksi Lancar" value={stats.nonDefaults} accent="teal" />
         <StatCard icon={Gauge} label="Rata-rata Skor" value={stats.avg.toFixed(4)} accent="royal" />
       </div>
 
@@ -67,40 +67,6 @@ export default function AnalysisResult() {
         ))}
       </div>
 
-      {/* Tabel ringkas */}
-      <div className="mt-6 card overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-line px-6 py-4">
-          <Database className="h-4 w-4 text-royal" />
-          <p className="text-sm font-bold text-navy">Rekapitulasi Tersimpan</p>
-          <span className="ml-auto text-xs text-steel">PostgreSQL · schema snowflake</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line bg-navy-50/50 text-left text-xs font-semibold uppercase tracking-wide text-steel">
-                <th className="px-6 py-3">#</th>
-                <th className="px-6 py-3 text-right">Plafon</th>
-                <th className="px-6 py-3 text-right">Usia</th>
-                <th className="px-6 py-3 text-right">PAY_0</th>
-                <th className="px-6 py-3 text-right">Skor</th>
-                <th className="px-6 py-3 text-center">Hasil</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {results.map((r, i) => (
-                <tr key={i} className="hover:bg-navy-50/40">
-                  <td className="px-6 py-3.5 font-mono text-steel">{i + 1}</td>
-                  <td className="px-6 py-3.5 text-right font-mono tabular-nums text-navy-600">{fmt(r.input.LIMIT_BAL)}</td>
-                  <td className="px-6 py-3.5 text-right tabular-nums text-navy-600">{r.input.AGE}</td>
-                  <td className="px-6 py-3.5 text-right tabular-nums text-navy-600">{r.input.PAY_0}</td>
-                  <td className="px-6 py-3.5 text-right font-mono font-semibold tabular-nums text-navy">{Number(r.prediction_score).toFixed(4)}</td>
-                  <td className="px-6 py-3.5 text-center"><RiskBadge label={r.prediction_label} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </AppShell>
   )
 }
