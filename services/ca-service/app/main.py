@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .database import Base, engine
+from .bootstrap import init_db
 from .routers import auth, predict
 
 app = FastAPI(
@@ -26,9 +26,9 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     try:
-        Base.metadata.create_all(bind=engine)
+        init_db()
     except Exception as e:  # pragma: no cover
-        print("[startup] create_all dilewati:", e)
+        print("[startup] init_db dilewati:", e)
 
 
 @app.get("/", tags=["health"])

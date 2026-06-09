@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.cors import CORSMiddleware as _C  # noqa
 
 from .config import settings
-from .database import Base, engine
+from .bootstrap import init_db
 from .routers import auth, mlflow_service, monitoring
 
 app = FastAPI(
@@ -29,11 +29,12 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    # Buat skema/tabel bila belum ada (selain init SQL pada container postgres)
+    # Buat skema/tabel + seed katalog bila belum ada (selain init SQL pada
+    # container postgres lokal). Penting untuk database terkelola seperti Neon.
     try:
-        Base.metadata.create_all(bind=engine)
+        init_db()
     except Exception as e:  # pragma: no cover
-        print("[startup] create_all dilewati:", e)
+        print("[startup] init_db dilewati:", e)
 
 
 @app.get("/", tags=["health"])
