@@ -1,29 +1,43 @@
-# ===== Web framework =====
+# =========================
+# Web API
+# =========================
 fastapi==0.115.4
 uvicorn[standard]==0.32.0
 python-multipart==0.0.12
 
-# ===== Autentikasi (JWT) =====
+# =========================
+# Auth
+# =========================
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
-# ===== Database (PostgreSQL) =====
+# =========================
+# Database
+# =========================
 sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
 
-# ===== Inference =====
-pandas==2.2.3
+# =========================
+# Data & Machine Learning
+# Kompatibel dengan pycaret==3.3.2
+# =========================
 numpy==1.26.4
+pandas==2.1.4
+scipy==1.11.4
 scikit-learn==1.4.2
-xgboost==2.1.2
 imbalanced-learn==0.12.4
 pycaret==3.3.2
 lightgbm==4.5.0
-joblib==1.4.2
+xgboost==2.1.2
+joblib==1.3.2
 
-# ===== Util =====
+# =========================
+# Config & Validation
+# =========================
 pydantic==2.9.2
 pydantic-settings==2.6.1
 
-passlib[bcrypt]==1.7.4
+# =========================
+# Bcrypt compatibility
+# =========================
 bcrypt==4.0.1
