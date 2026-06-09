@@ -85,7 +85,7 @@ function makeClient(baseURL, label, envName) {
         new Error(
           `[RiskFinder] ${label} API belum dikonfigurasi. ` +
             `Isi ${envName} di Vercel → Project → Settings → Environment Variables, ` +
-            `lalu lakukan deployment ulang.`
+            `lalu Redeploy.`
         )
       )
     }
@@ -120,10 +120,16 @@ function makeClient(baseURL, label, envName) {
 export const dsApi = makeClient(DS_BASE, 'Data Scientist', 'VITE_DS_API_URL')
 export const caApi = makeClient(CA_BASE, 'Credit Analysis', 'VITE_CA_API_URL')
 
+/**
+ * Pilih client sesuai divisi user yang sedang login.
+ */
 export function apiFor(division) {
   return division === 'credit-analysis' ? caApi : dsApi
 }
 
+/**
+ * Ekstrak pesan error yang ramah dari response axios.
+ */
 export function errMessage(e, fallback = 'Terjadi kesalahan. Coba lagi.') {
   return (
     e?.response?.data?.detail ||
