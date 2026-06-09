@@ -1,14 +1,44 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
-  UserPlus, Trash2, Wand2, Play, Users, ArrowLeft, ListPlus, X, Loader2, AlertCircle,
+  UserPlus, Trash2, Play, Users, ArrowLeft, ListPlus, X, Loader2,
 } from 'lucide-react'
 import AppShell from '../components/AppShell.jsx'
 import { SectionTitle, Banner, fmt } from '../components/ui.jsx'
 import { caApi, errMessage } from '../lib/api.js'
-import { FIELD_GROUPS, ALL_KEYS, SAMPLE_BORROWER, SAMPLE_RISKY } from '../lib/fields.js'
+import { FIELD_GROUPS, ALL_KEYS } from '../lib/fields.js'
 
 const emptyForm = () => Object.fromEntries(ALL_KEYS.map((k) => [k, '']))
+
+function persistenceError(message) {
+  const error = new Error(message)
+  error.isPersistenceError = true
+  return error
+}
+
+function assertPersistedResults(results) {
+  if (!Array.isArray(results) || results.length === 0) {
+    throw persistenceError('Response prediksi tidak berisi hasil analisis.')
+  }
+
+  const missingIndexes = results
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item?.testing_id === null || item?.testing_id === undefined)
+    .map(({ index }) => index + 1)
+
+  if (missingIndexes.length > 0) {
+    throw persistenceError(
+      `Prediksi berhasil, tetapi data peminjam ke-${missingIndexes.join(', ')} belum tersimpan ke database. ` +
+        'Cek log ca-service dan tabel analytics.fact_credit_testing.'
+    )
+  }
+}
+
+function shouldUseDemoFallback(error) {
+  // Demo fallback hanya untuk development saat backend benar-benar tidak bisa dijangkau.
+  // Error 4xx/5xx dari backend, terutama error database, harus ditampilkan ke user.
+  return import.meta.env.DEV && !error?.response && !error?.isPersistenceError
+}
 
 export default function EntryData() {
   const navigate = useNavigate()
@@ -19,11 +49,6 @@ export default function EntryData() {
 
   function setField(key, val) {
     setForm((f) => ({ ...f, [key]: val }))
-  }
-
-  function fillSample(which) {
-    setForm(which === 'risky' ? { ...SAMPLE_RISKY } : { ...SAMPLE_BORROWER })
-    setError('')
   }
 
   function validate(data) {
@@ -84,7 +109,7 @@ export default function EntryData() {
         const { data } = await caApi.post('/predict/batch', { borrowers })
         results = data.results
       } catch (batchErr) {
-        // Fallback: panggil /predict satu per satu
+        // Fallback kompatibilitas: panggil /predict satu per satu jika endpoint batch belum tersedia
         if (batchErr?.response?.status === 404) {
           results = []
           for (const b of borrowers) {
@@ -95,14 +120,20 @@ export default function EntryData() {
           throw batchErr
         }
       }
+
+      assertPersistedResults(results)
       sessionStorage.setItem('rf_results', JSON.stringify(results))
       navigate('/app/result', { state: { results } })
     } catch (e) {
-      // Fallback demo (backend offline): prediksi lokal heuristik agar UI dapat didemokan
-      const results = borrowers.map((b) => mockPredict(b))
-      sessionStorage.setItem('rf_results', JSON.stringify(results))
-      console.warn('Backend prediksi tidak terjangkau, memakai prediksi demo:', errMessage(e))
-      navigate('/app/result', { state: { results, demo: true } })
+      if (shouldUseDemoFallback(e)) {
+        const results = borrowers.map((b) => mockPredict(b))
+        sessionStorage.setItem('rf_results', JSON.stringify(results))
+        console.warn('Backend prediksi tidak terjangkau, memakai prediksi demo:', errMessage(e))
+        navigate('/app/result', { state: { results, demo: true } })
+        return
+      }
+
+      setError(errMessage(e, 'Gagal menyimpan hasil analisis ke database.'))
     } finally {
       setSubmitting(false)
     }
@@ -139,10 +170,10 @@ export default function EntryData() {
           {error && <Banner kind="error" onClose={() => setError('')}>{error}</Banner>}
 
           <div className="flex flex-wrap gap-3">
-            <button onClick={addToQueue} className="btn-ghost">
+            <button type="button" onClick={addToQueue} className="btn-ghost">
               <ListPlus className="h-4 w-4" /> Input Data Lagi
             </button>
-            <button onClick={analyze} disabled={submitting} className="btn-accent flex-1 sm:flex-none">
+            <button type="button" onClick={analyze} disabled={submitting} className="btn-accent flex-1 sm:flex-none">
               {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Menganalisis…</>
                 : <><Play className="h-4 w-4" /> Hasil Analysis{totalBorrowers > 1 ? ` (${totalBorrowers} peminjam)` : ''}</>}
             </button>
@@ -177,7 +208,7 @@ export default function EntryData() {
                       Plafon {fmt(b.LIMIT_BAL)} · Usia {b.AGE} · PAY_0 {b.PAY_0}
                     </p>
                   </div>
-                  <button onClick={() => removeFromQueue(i)} className="shrink-0 text-navy-300 transition hover:text-risk-high">
+                  <button type="button" onClick={() => removeFromQueue(i)} className="shrink-0 text-navy-300 transition hover:text-risk-high">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -185,7 +216,7 @@ export default function EntryData() {
             </div>
             {queue.length > 0 && (
               <div className="border-t border-line p-3">
-                <button onClick={() => setQueue([])} className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium text-steel hover:bg-navy-50 hover:text-risk-high">
+                <button type="button" onClick={() => setQueue([])} className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium text-steel hover:bg-navy-50 hover:text-risk-high">
                   <X className="h-3.5 w-3.5" /> Kosongkan daftar
                 </button>
               </div>
@@ -221,7 +252,7 @@ function Field({ f, value, onChange }) {
   )
 }
 
-// Prediksi heuristik lokal untuk mode demo (saat backend belum tersedia)
+// Prediksi heuristik lokal untuk mode demo development saja (saat backend belum tersedia)
 function mockPredict(b) {
   const lateMonths = ['PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6'].filter((k) => Number(b[k]) > 0).length
   const maxDelay = Math.max(...['PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6'].map((k) => Number(b[k])))
