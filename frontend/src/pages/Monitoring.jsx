@@ -261,14 +261,22 @@ function MonitoringView({ testing }) {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard icon={Activity} label="Rata-rata Prediction Score" value={data.avg_score.toFixed(4)} accent="royal" hint={`dari ${data.total} testing`} />
-        <StatCard icon={TrendingUp} label="Predicted Positive" value={positives.length} accent="risk" hint={`score ≥ ${POSITIVE_THRESHOLD}`} />
-        <StatCard icon={TrendingDown} label="Predicted Negative" value={negatives.length} accent="teal" hint={`score < ${POSITIVE_THRESHOLD}`} />
+        
+        {/* PERUBAHAN: accent diubah menjadi "teal" (hijau) untuk Positive */}
+        <StatCard icon={TrendingUp} label="Predicted Positive" value={positives.length} accent="teal" hint={`score ≥ ${POSITIVE_THRESHOLD}`} />
+        
+        {/* PERUBAHAN: accent diubah menjadi "risk" (merah) untuk Negative */}
+        <StatCard icon={TrendingDown} label="Predicted Negative" value={negatives.length} accent="risk" hint={`score < ${POSITIVE_THRESHOLD}`} />
       </div>
 
       {/* Histori testing */}
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
-        <HistoryGroup title="Predicted Positive" hint={`Prediction score ≥ ${POSITIVE_THRESHOLD}`} tone="high" rows={positives} />
-        <HistoryGroup title="Predicted Negative" hint={`Prediction score < ${POSITIVE_THRESHOLD}`} tone="low" rows={negatives} />
+        
+        {/* PERUBAHAN: tone diubah menjadi "low" (hijau) untuk Positive */}
+        <HistoryGroup title="Predicted Positive" hint={`Prediction score ≥ ${POSITIVE_THRESHOLD}`} tone="low" rows={positives} />
+        
+        {/* PERUBAHAN: tone diubah menjadi "high" (merah) untuk Negative */}
+        <HistoryGroup title="Predicted Negative" hint={`Prediction score < ${POSITIVE_THRESHOLD}`} tone="high" rows={negatives} />
       </div>
 
       {/* Linechart */}
